@@ -22,7 +22,7 @@
     document.getElementById('internshipsContainer').classList.remove('show');
     clearForm();
     loadLists();
-    document.getElementById('fillDate').value = formatDate(new Date());
+
   }
 
   // Открыть список собеседований
@@ -40,7 +40,6 @@
     document.getElementById('interviewsContainer').classList.remove('show');
     document.getElementById('interviewForm').classList.add('show');
     document.getElementById('internshipsContainer').classList.remove('show');
-    document.getElementById('fillDate').value = formatDate(new Date());
     loadLists();
     document.getElementById('interviewForm').dataset.row = row;
     google.script.run
@@ -176,7 +175,6 @@
       IMask(phoneInput, { mask: '+7(000)000-00-00', lazy: false, placeholderChar: '_' });
       phoneInput.value = '+7(___)___-__-__';
     }
-    document.getElementById('fillDate').value = formatDate(new Date());
     document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
     document.getElementById('formSuccess').style.display = 'none';
@@ -195,7 +193,6 @@
       IMask(phoneInput, { mask: '+7(000)000-00-00', lazy: false, placeholderChar: '_' });
       phoneInput.value = phone || '+7(___)___-__-__';
     }
-    document.getElementById('fillDate').value = formatDate(new Date());
     document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
     document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
     document.getElementById('interviewFormSuccess').style.display = 'none';
@@ -383,10 +380,10 @@
       callType:        document.querySelector('input[name="interviewCallType"]:checked').value,
       isReferral:      document.querySelector('input[name="isReferral"]:checked').value,
       referralName:    document.getElementById('referralName').value.trim(),
-      fillDate:        document.getElementById('fillDate').value,
-      hasMedicalBook:  document.querySelector('input[name="hasMedicalBook"]:checked').value,
-      scheduleExplained: document.querySelector('input[name="scheduleExplained"]:checked').value,
-      paymentExplained:  document.querySelector('input[name="paymentExplained"]:checked').value,
+      fillDate:        formatDate(new Date()),
+      hasMedicalBook:  document.getElementById('hasMedicalBook').checked ? 'Да' : 'Нет',
+      scheduleExplained: document.getElementById('scheduleExplained').checked ? 'Да' : 'Нет',
+      paymentExplained:  document.getElementById('paymentExplained').checked ? 'Да' : 'Нет',
       recommendation:    document.getElementById('recommendation').value.trim(),
       interviewComment:  document.getElementById('interviewComment').value.trim()
     };
