@@ -175,6 +175,8 @@
   function clearInternshipForm(){
     document.getElementById('internshipForm').reset();
     document.querySelectorAll('#internshipForm .error').forEach(el => el.classList.remove('error'));
+    document.getElementById('internshipFormError').style.display = 'none';
+    document.getElementById('internshipFormSuccess').style.display = 'none';
     toggleMedicalFields();
   }
 
@@ -195,8 +197,13 @@
 
 
   function saveInternshipForm(){
+    const errEl = document.getElementById('internshipFormError');
+    const successEl = document.getElementById('internshipFormSuccess');
+    errEl.style.display = 'none';
+    successEl.style.display = 'none';
     if(!validateInternshipForm()){
-      alert('Заполните все поля для статуса "Принят на работу"');
+      errEl.textContent = 'Заполните все обязательные поля для статуса "Принят на работу"';
+      errEl.style.display = 'block';
       return;
     }
     const data = {
@@ -231,11 +238,18 @@
     document.getElementById('loadingOverlay').classList.add('show');
     google.script.run.withSuccessHandler(function(res){
       document.getElementById('loadingOverlay').classList.remove('show');
-      if(res.status==='success') closeInternshipForm();
-      else alert(res.message);
+      if(res.status==='success') {
+        successEl.style.display = 'block';
+        errEl.style.display = 'none';
+        closeInternshipForm();
+      } else {
+        errEl.textContent = res.message;
+        errEl.style.display = 'block';
+      }
     }).withFailureHandler(function(err){
       document.getElementById('loadingOverlay').classList.remove('show');
-      alert('Ошибка сохранения: '+err);
+      errEl.textContent = 'Ошибка сохранения: '+err;
+      errEl.style.display = 'block';
     }).saveInternship(data);
   }
 
@@ -468,14 +482,14 @@
 
     return isValid;
   }
-  
+
   function validateInternshipForm() {
     const status = document.getElementById('internshipStatus').value;
     if (status !== 'Принят на работу') return true;
     const form = document.getElementById('internshipForm');
     let valid = true;
     form.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), textarea, select').forEach(el => {
-      if (!el.value.trim()) {
+      if (el.required && !el.value.trim()) {
         el.classList.add('error');
         valid = false;
       } else {
@@ -720,6 +734,7 @@
               <td>
                 <div class="status-container">
                   <select class="status-select" data-id="${internship.id}">
+                    <option value="Назначена стажировка"${internship.status==='Назначена стажировка'?' selected':''}>Назначена стажировка</option>
                     <option value="Связаться позже"${internship.status==='Связаться позже'?' selected':''}>Связаться позже</option>
                     <option value="Кандидат отказался"${internship.status==='Кандидат отказался'?' selected':''}>Кандидат отказался</option>
                     <option value="Отказано кандидату"${internship.status==='Отказано кандидату'?' selected':''}>Отказано кандидату</option>
