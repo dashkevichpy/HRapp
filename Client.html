@@ -113,6 +113,7 @@
     document.getElementById('interviewsContainer').classList.remove('show');
     document.getElementById('internshipsContainer').classList.remove('show');
     document.getElementById('internshipForm').classList.add('show');
+    document.getElementById('internshipForm').scrollIntoView({behavior:'smooth'});
     document.getElementById('internshipForm').dataset.row = id;
     document.getElementById('loadingOverlay').classList.add('show');
     google.script.run.withSuccessHandler(function(res){
@@ -139,9 +140,9 @@
           document.querySelector(`input[name="internshipCallType"][value="${d[15]}"]`).checked = true;
           document.querySelector(`input[name="internshipIsReferral"][value="${d[18]}"]`).checked = true;
           document.getElementById('internshipReferralName').value = d[19];
-          document.getElementById('hasMedicalBook').checked = d[21]==='Да';
-          document.getElementById('scheduleExplained').checked = d[22]==='Да';
-          document.getElementById('paymentExplained').checked = d[23]==='Да';
+          document.getElementById('internshipHasMedicalBook').checked = d[21]==='Да';
+          document.getElementById('internshipScheduleExplained').checked = d[22]==='Да';
+          document.getElementById('internshipPaymentExplained').checked = d[23]==='Да';
           document.getElementById('internshipComment').value = d[16];
           document.getElementById('internshipRecommendation').value = d[24];
           document.getElementById('internshipInterviewComment').value = d[25];
@@ -166,12 +167,14 @@
     document.getElementById('addCandidateForm').classList.remove('show');
     document.getElementById('internshipsContainer').classList.add('show');
     document.getElementById('internshipForm').classList.remove('show');
+    document.getElementById('internshipsContainer').scrollIntoView({behavior:'smooth'});
     clearInternshipForm();
     loadInternships();
   }
 
   function clearInternshipForm(){
     document.getElementById('internshipForm').reset();
+    document.querySelectorAll('#internshipForm .error').forEach(el => el.classList.remove('error'));
     toggleMedicalFields();
   }
 
@@ -192,6 +195,10 @@
 
 
   function saveInternshipForm(){
+    if(!validateInternshipForm()){
+      alert('Заполните все поля для статуса "Принят на работу"');
+      return;
+    }
     const data = {
       id: document.getElementById('internshipForm').dataset.row,
       fullName: document.getElementById('internshipFullName').value.trim(),
@@ -207,9 +214,9 @@
       callType: document.querySelector('input[name="internshipCallType"]:checked').value,
       isReferral: document.querySelector('input[name="internshipIsReferral"]:checked').value,
       referralName: document.getElementById('internshipReferralName').value.trim(),
-      hasMedicalBook: document.getElementById('hasMedicalBook').checked ? 'Да':'Нет',
-      scheduleExplained: document.getElementById('scheduleExplained').checked ? 'Да':'Нет',
-      paymentExplained: document.getElementById('paymentExplained').checked ? 'Да':'Нет',
+      hasMedicalBook: document.getElementById('internshipHasMedicalBook').checked ? 'Да':'Нет',
+      scheduleExplained: document.getElementById('internshipScheduleExplained').checked ? 'Да':'Нет',
+      paymentExplained: document.getElementById('internshipPaymentExplained').checked ? 'Да':'Нет',
       comment: document.getElementById('internshipComment').value.trim(),
       recommendation: document.getElementById('internshipRecommendation').value.trim(),
       interviewComment: document.getElementById('internshipInterviewComment').value.trim(),
@@ -461,6 +468,32 @@
 
     return isValid;
   }
+  
+  function validateInternshipForm() {
+    const status = document.getElementById('internshipStatus').value;
+    if (status !== 'Принят на работу') return true;
+    const form = document.getElementById('internshipForm');
+    let valid = true;
+    form.querySelectorAll('input:not([type="checkbox"]):not([type="radio"]), textarea, select').forEach(el => {
+      if (!el.value.trim()) {
+        el.classList.add('error');
+        valid = false;
+      } else {
+        el.classList.remove('error');
+      }
+    });
+    if (form.querySelector('input[name="internshipIsReferral"]:checked')?.value === 'Да') {
+      const ref = document.getElementById('internshipReferralName');
+      if (!ref.value.trim()) {
+        ref.classList.add('error');
+        valid = false;
+      } else {
+        ref.classList.remove('error');
+      }
+    }
+    return valid;
+  }
+
 
   // Сохранение формы кандидата
   function saveForm() {
