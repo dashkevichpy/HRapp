@@ -241,6 +241,9 @@ function saveInterview(data) {
     const headers = dataRange[0];
     const rowIndex = dataRange.findIndex(row => row[0] === data.id);
     if (rowIndex === -1) return { status: 'error', message: 'Кандидат не найден' };
+    if (!data.fillDate) {
+      data.fillDate = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd');
+    }
     const candidate = new Candidate({
       id: data.id,
       dateCreated: dataRange[rowIndex][headers.indexOf('Дата создания')],
