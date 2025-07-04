@@ -61,7 +61,7 @@
         transform: translateY(0);
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
       }
-      .form-container, .interviews-container, .internships-container, .interview-form-container {
+      .form-container, .interviews-container, .internships-container, .interview-form-container, .internship-form-container {
         display: none;
         margin-top: 24px;
         text-align: center;
@@ -73,7 +73,7 @@
         padding: 16px;
         background-color: #f9fcf9;
       }
-      .form-container.show, .interviews-container.show, .internships-container.show, .interview-form-container.show {
+      .form-container.show, .interviews-container.show, .internships-container.show, .interview-form-container.show, .internship-form-container.show {
         display: block;
         opacity: 1;
         transform: translateY(0);
@@ -222,7 +222,7 @@
       .interviews-table th:nth-child(4), .interviews-table td:nth-child(4), .internships-table th:nth-child(4), .internships-table td:nth-child(4) { width: 150px; }
       .interviews-table th:nth-child(5), .interviews-table td:nth-child(5), .internships-table th:nth-child(5), .internships-table td:nth-child(5) { width: 300px; white-space: normal; word-wrap: break-word; }
       .interviews-table th:nth-child(6), .interviews-table td:nth-child(6), .internships-table th:nth-child(6), .internships-table td:nth-child(6) { width: 200px; white-space: normal; word-wrap: break-word; }
-      .interviews-table th:nth-child(7), .interviews-table td:nth-child(7) { width: 100px; }
+      .interviews-table th:nth-child(7), .interviews-table td:nth-child(7), .internships-table th:nth-child(7), .internships-table td:nth-child(7) { width: 100px; }
       .interviews-table tr:nth-child(even), .internships-table tr:nth-child(even) {
         background-color: #f9fcf9;
       }
@@ -364,7 +364,7 @@
         .interviews-table th:nth-child(4), .interviews-table td:nth-child(4), .internships-table th:nth-child(4), .internships-table td:nth-child(4) { width: 120px; }
         .interviews-table th:nth-child(5), .interviews-table td:nth-child(5), .internships-table th:nth-child(5), .internships-table td:nth-child(5) { width: 200px; white-space: normal; word-wrap: break-word; }
         .interviews-table th:nth-child(6), .interviews-table td:nth-child(6), .internships-table th:nth-child(6), .internships-table td:nth-child(6) { width: 150px; white-space: normal; word-wrap: break-word; }
-        .interviews-table th:nth-child(7), .interviews-table td:nth-child(7) { width: 80px; }
+        .interviews-table th:nth-child(7), .interviews-table td:nth-child(7), .internships-table th:nth-child(7), .internships-table td:nth-child(7) { width: 80px; }
       }
     </style>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -399,7 +399,7 @@
       <div class="button-row">
         <button class="btn" onclick="window.openAddCandidate()">Добавить соискателя</button>
         <button class="btn" onclick="window.openInterviews()">Собеседования</button>
-        <button class="btn" onclick="window.openInternships()">Посмотреть стажировки</button>
+        <button class="btn" onclick="window.openInternships()">Стажировки</button>
       </div>
       <form id="addCandidateForm" class="form-container">
         <div class="form-row">
@@ -696,6 +696,40 @@
           <button type="button" class="form-btn" onclick="window.saveInternshipChanges()">Сохранить изменения</button>
         </div>
       </div>
+      <form id="internshipForm" class="internship-form-container">
+        <p>Анкета на Стажировки 1го дня</p>
+        <div class="form-row">
+          <div class="form-group">
+            <label><input type="checkbox" id="medicalBookSubmitted" onclick="toggleMedicalFields()"> Мед. книжка сдана</label>
+          </div>
+          <div class="form-group">
+            <label><input type="checkbox" id="apprenticeshipContract"> Учениче. договор подписан</label>
+          </div>
+          <div class="form-group">
+            <label><input type="checkbox" id="dataProcessingConsent"> Согласие на обраб. данных подписано</label>
+          </div>
+          <div class="form-group">
+            <label><input type="checkbox" id="inspectionConsent"> Согласие на осмотр подписано</label>
+          </div>
+          <div class="form-group">
+            <label><input type="checkbox" id="internshipFormCompleted"> Анкета заполнена</label>
+          </div>
+        </div>
+        <div class="form-row medical-fields" style="display:none;">
+          <div class="form-group">
+            <label for="medicalExamExpiration">Дата окончания медосмотра</label>
+            <input type="date" id="medicalExamExpiration">
+          </div>
+          <div class="form-group">
+            <label for="sanitaryExpiration">Дата окончания сан минимума</label>
+            <input type="date" id="sanitaryExpiration">
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="form-btn" onclick="window.saveInternshipForm()">Сохранить</button>
+          <button type="button" class="form-btn" onclick="window.closeInternshipForm()">Назад</button>
+        </div>
+      </form>
       <div id="loadingOverlay"><div class="spinner"></div></div>
     </div>
   </body>
