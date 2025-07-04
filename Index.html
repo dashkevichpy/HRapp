@@ -578,6 +578,7 @@
             <select id="interviewStatus" onchange="toggleInterviewFields()" required>
               <option value="Назначено собеседование">Назначено собеседование</option>
               <option value="Связаться позже">Связаться позже</option>
+              <option value="Назначена стажировка">Назначена стажировка</option>
               <option value="Кандидат отказался">Кандидат отказался</option>
               <option value="Отказано кандидату">Отказано кандидату</option>
             </select>
@@ -600,7 +601,7 @@
           <div class="form-group">
             <label for="interviewSource">Источник</label>
             <input type="text" id="interviewSource" list="sourceList" required>
-            <div id="interviewSourceError" class="rror-message">Выберите или введите корректный источник</div>
+            <div id="interviewSourceError" class="error-message">Выберите или введите корректный источник</div>
           </div>
           <div class="form-group">
             <label for="interviewRecruiter">Рекрутер</label>
