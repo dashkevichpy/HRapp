@@ -104,8 +104,76 @@
     document.getElementById('interviewsContainer').classList.remove('show');
     document.getElementById('interviewForm').classList.remove('show');
     document.getElementById('internshipsContainer').classList.add('show');
+    document.getElementById('internshipForm').classList.remove('show');
     loadInternships();
   }
+
+  function openInternshipForm(id) {
+    document.getElementById('addCandidateForm').classList.remove('show');
+    document.getElementById('interviewsContainer').classList.remove('show');
+    document.getElementById('internshipsContainer').classList.remove('show');
+    document.getElementById('internshipForm').classList.add('show');
+    document.getElementById('internshipForm').dataset.row = id;
+    document.getElementById('loadingOverlay').classList.add('show');
+    google.script.run.withSuccessHandler(function(res){
+        document.getElementById('loadingOverlay').classList.remove('show');
+        if(res.status==='success'){
+          const d = res.data;
+          document.getElementById('medicalBookSubmitted').checked = d[28]==='Да';
+          document.getElementById('apprenticeshipContract').checked = d[29]==='Да';
+          document.getElementById('dataProcessingConsent').checked = d[30]==='Да';
+          document.getElementById('inspectionConsent').checked = d[31]==='Да';
+          document.getElementById('internshipFormCompleted').checked = d[32]==='Да';
+          document.getElementById('medicalExamExpiration').value = d[33] ? d[33].split('.').reverse().join('-') : '';
+          document.getElementById('sanitaryExpiration').value = d[34] ? d[34].split('.').reverse().join('-') : '';
+          toggleMedicalFields();
+        }
+    }).withFailureHandler(function(err){
+        document.getElementById('loadingOverlay').classList.remove('show');
+        alert('Ошибка загрузки: '+err);
+    }).getCandidateById(id);
+  }
+
+  function closeInternshipForm(){
+    document.getElementById('addCandidateForm').classList.remove('show');
+    document.getElementById('internshipsContainer').classList.add('show');
+    document.getElementById('internshipForm').classList.remove('show');
+    clearInternshipForm();
+    loadInternships();
+  }
+
+  function clearInternshipForm(){
+    document.getElementById('internshipForm').reset();
+    toggleMedicalFields();
+  }
+
+  function toggleMedicalFields(){
+    const show = document.getElementById('medicalBookSubmitted').checked;
+    document.querySelector('.medical-fields').style.display = show ? 'flex' : 'none';
+  }
+
+  function saveInternshipForm(){
+    const data = {
+      id: document.getElementById('internshipForm').dataset.row,
+      medicalBookSubmitted: document.getElementById('medicalBookSubmitted').checked ? 'Да':'Нет',
+      apprenticeshipContract: document.getElementById('apprenticeshipContract').checked ? 'Да':'Нет',
+      dataProcessingConsent: document.getElementById('dataProcessingConsent').checked ? 'Да':'Нет',
+      inspectionConsent: document.getElementById('inspectionConsent').checked ? 'Да':'Нет',
+      internshipFormCompleted: document.getElementById('internshipFormCompleted').checked ? 'Да':'Нет',
+      medicalExamExpiration: document.getElementById('medicalExamExpiration').value,
+      sanitaryExpiration: document.getElementById('sanitaryExpiration').value
+    };
+    document.getElementById('loadingOverlay').classList.add('show');
+    google.script.run.withSuccessHandler(function(res){
+      document.getElementById('loadingOverlay').classList.remove('show');
+      if(res.status==='success') closeInternshipForm();
+      else alert(res.message);
+    }).withFailureHandler(function(err){
+      document.getElementById('loadingOverlay').classList.remove('show');
+      alert('Ошибка сохранения: '+err);
+    }).saveInternship(data);
+  }
+
 
   // Загрузить справочные списки
   function loadLists() {
@@ -553,7 +621,7 @@
           response.interviews.forEach(internship => {
             const row = document.createElement('tr');
             row.innerHTML = `
-              <td>${internship.dateTime}</td>
+              <td><input type="date" class="internship-date" value="${internship.interviewDate}"><input type="time" class="internship-time" value="${internship.interviewTime}"></td>
               <td>${internship.fullName}</td>
               <td>${internship.phone}</td>
               <td>${internship.position}</td>
@@ -574,6 +642,7 @@
                   </div>
                 </div>
               </td>
+              <td><button class="action-btn" onclick="openInternshipForm('${internship.id}')">Анкета</button></td>
             `;
             tableBody.appendChild(row);
           });
@@ -601,13 +670,16 @@
   function saveInternshipChanges() {
     const updates = [];
     document.querySelectorAll('.status-select').forEach(select => {
-      const container = select.closest('.status-container');
+      const container = select.closest('tr');
+      const statusCont = select.closest('.status-container');
       const id              = select.dataset.id;
       const status          = select.value;
-      const followupDate    = container.querySelector('.followup-date').value || '';
-      const followupTime    = container.querySelector('.followup-time').value || '';
-      const refusalComment  = container.querySelector('.internship-comment').value || '';
-      updates.push({ id, status, followupDate, followupTime, refusalComment, recruiter: document.getElementById('interviewRecruiter').value.trim() });
+      const followupDate    = statusCont.querySelector('.followup-date').value || '';
+      const followupTime    = statusCont.querySelector('.followup-time').value || '';
+      const refusalComment  = statusCont.querySelector('.internship-comment').value || '';
+      const interviewDate   = container.querySelector('.internship-date').value || '';
+      const interviewTime   = container.querySelector('.internship-time').value || '';
+      updates.push({ id, status, followupDate, followupTime, refusalComment, interviewDate, interviewTime, recruiter: document.getElementById('interviewRecruiter').value.trim() });
     });
     document.getElementById('loadingOverlay').classList.add('show');
     google.script.run
@@ -633,6 +705,7 @@
     loadLists();
     toggleFields();
     toggleInterviewFields();
+    toggleMedicalFields();
 
     document.getElementById('status')?.addEventListener('change', toggleFields);
     document.getElementById('interviewStatus')?.addEventListener('change', toggleInterviewFields);
@@ -643,5 +716,6 @@
     toggleDateFilter();
     document.getElementById('internshipFilterAll')?.addEventListener('change', toggleInternshipDateFilter);
     document.getElementById('internshipFilterDate')?.addEventListener('change', toggleInternshipDateFilter);
+    document.getElementById('medicalBookSubmitted')?.addEventListener('change', toggleMedicalFields);
   });
 </script>
