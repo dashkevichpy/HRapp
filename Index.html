@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #ffffff;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        margin: 0;
+        color: #2d3748;
+      }
+      .hr-form {
+        text-align: center;
+        background-color: #f4faf4;
+        padding: 32px;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        width: calc(100% - 40px);
+        max-width: 1200px;
+        margin: 24px;
+        border: 1px solid #d4e4d4;
+      }
+      h1 {
+        font-size: 24px;
+        font-weight: 600;
+        margin-bottom: 24px;
+        color: #1a202c;
+      }
+      .button-row {
+        display: flex;
+        justify-content: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 24px;
+      }
+      .btn {
+        background-color: #3b8c6e;
+        color: #ffffff;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+        min-width: 180px;
+        text-align: center;
+      }
+      .btn:hover {
+        background-color: #317558;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        transform: translateY(-1px);
+      }
+      .btn:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+      }
+      .form-container, .interviews-container, .internships-container, .interview-form-container {
+        display: none;
+        margin-top: 24px;
+        text-align: center;
+        opacity: 0;
+        transform: translateY(16px);
+        transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        border: 1px solid #d4e4d4;
+        border-radius: 8px;
+        padding: 16px;
+        background-color: #f9fcf9;
+      }
+      .form-container.show, .interviews-container.show, .internships-container.show, .interview-form-container.show {
+        display: block;
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .form-row {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+      .form-group {
+        flex: 1;
+        min-width: 200px;
+        margin-bottom: 16px;
+        border: 1px solid #d4e4d4;
+        border-radius: 6px;
+        padding: 8px;
+        background-color: #ffffff;
+      }
+      .form-group.full-width {
+        flex: 0 0 100%;
+      }
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #2d3748;
+        text-align: center;
+        font-size: 14px;
+      }
+      input[type="text"],
+      input[type="date"],
+      input[type="time"],
+      input[type="number"],
+      textarea,
+      select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #d4e4d4;
+        border-radius: 6px;
+        font-size: 14px;
+        box-sizing: border-box;
+        background-color: #ffffff;
+        text-align: center;
+        transition: border-color 0.2s ease;
+      }
+      input[type="text"]:focus,
+      input[type="date"]:focus,
+      input[type="time"]:focus,
+      input[type="number"]:focus,
+      textarea:focus,
+      select:focus {
+        outline: none;
+        border-color: #3b8c6e;
+        box-shadow: 0 0 4px rgba(59, 140, 110, 0.2);
+        text-align: center;
+      }
+      textarea {
+        resize: vertical;
+        min-height: 100px;
+        width: 100%;
+        text-align: left;
+      }
+      .error {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 4px rgba(220, 53, 69, 0.2) !important;
+      }
+      .error-message {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 6px;
+        display: none;
+        text-align: center;
+      }
+      .success-message {
+        color: #28a745;
+        font-size: 14px;
+        margin-top: 16px;
+        text-align: center;
+        display: none;
+      }
+      .checkbox-group {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 16px;
+        justify-content: center;
+      }
+      .form-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 16px;
+      }
+      .form-btn {
+        background-color: #3b8c6e;
+        color: #ffffff;
+        padding: 12px 24px;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+        min-width: 180px;
+        text-align: center;
+      }
+      .form-btn:hover {
+        background-color: #317558;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        transform: translateY(-1px);
+      }
+      .form-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+      }
+      .interviews-table, .internships-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+        font-size: 14px;
+        background-color: #ffffff;
+        border: 1px solid #d4e4d4;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .interviews-table tr, .internships-table tr {
+        height: auto;
+        min-height: 40px;
+      }
+      .interviews-table th, .interviews-table td, .internships-table th, .internships-table td {
+        border: 1px solid #d4e4d4;
+        padding: 10px;
+        text-align: center;
+        vertical-align: top;
+      }
+      .interviews-table th, .internships-table th {
+        background-color: #e8f4e8;
+        font-weight: 500;
+        position: sticky;
+        top: 0;
+      }
+      .interviews-table th:nth-child(1), .interviews-table td:nth-child(1), .internships-table th:nth-child(1), .internships-table td:nth-child(1) { width: 120px; }
+      .interviews-table th:nth-child(2), .interviews-table td:nth-child(2), .internships-table th:nth-child(2), .internships-table td:nth-child(2) { width: 200px; }
+      .interviews-table th:nth-child(3), .interviews-table td:nth-child(3), .internships-table th:nth-child(3), .internships-table td:nth-child(3) { width: 120px; }
+      .interviews-table th:nth-child(4), .interviews-table td:nth-child(4), .internships-table th:nth-child(4), .internships-table td:nth-child(4) { width: 150px; }
+      .interviews-table th:nth-child(5), .interviews-table td:nth-child(5), .internships-table th:nth-child(5), .internships-table td:nth-child(5) { width: 300px; white-space: normal; word-wrap: break-word; }
+      .interviews-table th:nth-child(6), .interviews-table td:nth-child(6), .internships-table th:nth-child(6), .internships-table td:nth-child(6) { width: 200px; white-space: normal; word-wrap: break-word; }
+      .interviews-table th:nth-child(7), .interviews-table td:nth-child(7) { width: 100px; }
+      .interviews-table tr:nth-child(even), .internships-table tr:nth-child(even) {
+        background-color: #f9fcf9;
+      }
+      .interviews-table tr:hover, .internships-table tr:hover {
+        background-color: #e8f4e8;
+      }
+      .followup-date, .followup-time, .internship-comment {
+        width: 100%;
+        padding: 5px;
+        border: 1px solid #d4e4d4;
+        border-radius: 4px;
+        margin-top: 5px;
+        box-sizing: border-box;
+        text-align: center;
+      }
+      .internship-comment {
+        resize: vertical;
+        min-height: 60px;
+        text-align: left;
+      }
+      .followup-date.error, .followup-time.error, .internship-comment.error {
+        border-color: #dc3545;
+      }
+      .date-selector {
+        display: flex;
+        gap: 16px;
+        margin-bottom: 16px;
+        border: 1px solid #d4e4d4;
+        border-radius: 6px;
+        padding: 8px;
+        background-color: #ffffff;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .table-container {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid #d4e4d4;
+        border-radius: 8px;
+        padding: 8px;
+      }
+      .action-btn {
+        background-color: #3b8c6e;
+        color: #ffffff;
+        padding: 6px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .action-btn:hover {
+        background-color: #317558;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .status-container {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        padding: 5px;
+        min-width: 200px;
+        box-sizing: border-box;
+      }
+      .status-select {
+        padding: 5px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .followup-container, .comment-container {
+        display: none;
+        flex-direction: column;
+        gap: 5px;
+        width: 100%;
+        box-sizing: border-box;
+        margin-top: 5px;
+      }
+      #loadingOverlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.6);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+      }
+      #loadingOverlay.show {
+        display: flex;
+      }
+      .spinner {
+        width: 60px;
+        height: 60px;
+        border: 6px solid #f3f3f3;
+        border-top: 6px solid #3b8c6e;
+        border-radius: 50%;
+        animation: spin 1s linear infinite, pulse 1.5s ease-in-out infinite;
+        position: relative;
+      }
+      .spinner::after {
+        content: 'Загрузка...';
+        position: absolute;
+        top: 70px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #ffffff;
+        font-size: 16px;
+        font-weight: 500;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      }
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+      @media (max-width: 600px) {
+        .btn, .form-btn {
+          min-width: 100%;
+          margin-bottom: 12px;
+        }
+        .hr-form {
+          width: calc(100% - 20px);
+          margin: 12px;
+          padding: 24px;
+        }
+        .interviews-table, .internships-table {
+          font-size: 12px;
+        }
+        .interviews-table th:nth-child(1), .interviews-table td:nth-child(1), .internships-table th:nth-child(1), .internships-table td:nth-child(1) { width: 100px; }
+        .interviews-table th:nth-child(2), .interviews-table td:nth-child(2), .internships-table th:nth-child(2), .internships-table td:nth-child(2) { width: 150px; }
+        .interviews-table th:nth-child(3), .interviews-table td:nth-child(3), .internships-table th:nth-child(3), .internships-table td:nth-child(3) { width: 100px; }
+        .interviews-table th:nth-child(4), .interviews-table td:nth-child(4), .internships-table th:nth-child(4), .internships-table td:nth-child(4) { width: 120px; }
+        .interviews-table th:nth-child(5), .interviews-table td:nth-child(5), .internships-table th:nth-child(5), .internships-table td:nth-child(5) { width: 200px; white-space: normal; word-wrap: break-word; }
+        .interviews-table th:nth-child(6), .interviews-table td:nth-child(6), .internships-table th:nth-child(6), .internships-table td:nth-child(6) { width: 150px; white-space: normal; word-wrap: break-word; }
+        .interviews-table th:nth-child(7), .interviews-table td:nth-child(7) { width: 80px; }
+      }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/imask"></script>
+    <?!= include('Client'); ?>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const phoneInput = document.getElementById('phone');
+        const interviewPhoneInput = document.getElementById('interviewPhone');
+        
+        if (phoneInput) {
+          IMask(phoneInput, {
+            mask: '+7(000)000-00-00',
+            lazy: false,
+            placeholderChar: '_'
+          });
+        }
+        
+        if (interviewPhoneInput) {
+          IMask(interviewPhoneInput, {
+            mask: '+7(000)000-00-00',
+            lazy: false,
+            placeholderChar: '_'
+          });
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <div class="hr-form">
+      <h1>HR Форма для Фабрика НСК</h1>
+      <div class="button-row">
+        <button class="btn" onclick="window.openAddCandidate()">Добавить соискателя</button>
+        <button class="btn" onclick="window.openInterviews()">Собеседования</button>
+        <button class="btn" onclick="window.openInternships()">Посмотреть стажировки</button>
+      </div>
+      <form id="addCandidateForm" class="form-container">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="fullName">ФИО</label>
+            <input type="text" id="fullName" required>
+            <div id="fullNameError" class="error-message">ФИО должно содержать только буквы, пробелы, дефисы или апострофы (2-100 символов)</div>
+          </div>
+          <div class="form-group">
+            <label for="phone">Номер телефона</label>
+            <input type="text" id="phone" placeholder="+7(___)___-__-__" required>
+            <div id="phoneError" class="error-message">Введите номер в формате +7(XXX)XXX-XX-XX</div>
+          </div>
+          <div class="form-group">  
+            <label for="position">Должность</label>
+            <input type="text" id="position" list="positionList" required>
+            <datalist id="positionList"></datalist>
+            <div id="positionError" class="error-message">Выберите или введите корректную должность из списка</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="age">Возраст</label>
+            <input type="number" id="age" min="16" max="100" required>
+            <div id="ageError" class="error-message">Возраст должен быть от 16 до 100 лет</div>
+          </div>
+          <div class="form-group">
+            <label for="citizenship">Гражданство</label>
+            <input type="text" id="citizenship" required>
+            <div id="citizenshipError" class="error-message">Введите гражданство</div>
+          </div>
+          <div class="form-group">
+            <label for="status">Статус</label>
+            <select id="status" onchange="toggleFields()" required>
+              <option value="">Выберите статус</option>
+              <option value="Кандидат отказался">Кандидат отказался</option>
+              <option value="Назначено собеседование">Назначено собеседование</option>
+              <option value="Связаться позже">Связаться позже</option>
+              <option value="Отказано кандидату">Отказано кандидату</option>
+            </select>
+            <div id="statusError" class="error-message">Выберите статус</div>
+          </div>
+          <div class="form-group refusal-comment-field" style="display: none;">
+            <label for="refusalComment">Комментарий отказа</label>
+            <input type="text" id="refusalComment" maxlength="200" placeholder="Причина отказа">
+            <div id="refusalCommentError" class="error-message">Комментарий отказа не должен превышать 200 символов</div>
+          </div>
+        </div>
+        <div class="form-row interview-fields" style="display: none;">
+          <div class="form-group">
+            <label for="interviewDate">Дата собеседования</label>
+            <input type="date" id="interviewDate" required>
+            <div id="interviewDateError" class="error-message">Дата не может быть раньше текущей</div>
+          </div>
+          <div class="form-group">
+            <label for="interviewTime">Время собеседования</label>
+            <input type="time" id="interviewTime" required>
+            <div id="interviewTimeError" class="error-message">Время не может быть раньше текущего для сегодняшней даты</div>
+          </div>
+        </div>
+        <div class="form-row followup-fields" style="display: none;">
+          <div class="form-group">
+            <label for="followupDate">Дата связи</label>
+            <input type="date" id="followupDate" required>
+            <div id="followupDateError" class="error-message">Дата не может быть раньше текущей</div>
+          </div>
+          <div class="form-group">
+            <label for="followupTime">Время связи</label>
+            <input type="time" id="followupTime" required>
+            <div id="followupTimeError" class="error-message">Время не может быть раньше текущего для сегодняшней даты</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="source">Источник</label>
+            <input type="text" id="source" list="sourceList" required>
+            <datalist id="sourceList"></datalist>
+            <div id="sourceError" class="error-message">Выберите или введите корректный источник</div>
+          </div>
+          <div class="form-group">
+            <label for="recruiter">Рекрутер</label>
+            <input type="text" id="recruiter" list="recruiterList" required>
+            <datalist id="recruiterList"></datalist>
+            <div id="recruiterError" class="error-message">Выберите или введите корректного рекрутера из списка</div>
+          </div>
+          <div class="form-group">
+            <label>Тип звонка</label>
+            <div class="checkbox-group">
+              <label><input type="radio" name="callType" value="Входящий" checked> Входящий</label>
+              <label><input type="radio" name="callType" value="Исходящий"> Исходящий</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="comment">Комментарий</label>
+            <textarea id="comment" maxlength="200" placeholder="Укажите стаж работы, образование, навыки, ожидания по зарплате"></textarea>
+            <div id="commentError" class="error-message">Комментарий не должен превышать 200 символов</div>
+          </div>
+        </div>
+        <div class="form-group full-width">
+          <div id="formError" class="error-message"></div>
+          <div id="formSuccess" class="success-message">Данные успешно сохранены!</div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="form-btn" onclick="window.saveForm()">Сохранить</button>
+          <button type="button" class="form-btn" onclick="window.clearForm()">Очистить</button>
+        </div>
+      </form>
+      <div id="interviewsContainer" class="interviews-container">
+        <div class="form-row date-selector">
+          <div class="form-group">
+            <label>Фильтр собеседований</label>
+            <div class="checkbox-group">
+              <label><input type="radio" name="interviewFilter" id="interviewFilterAll" value="all" checked onclick="window.toggleDateFilter()"> Все собеседования</label>
+              <label><input type="radio" name="interviewFilter" id="interviewFilterDate" value="date" onclick="window.toggleDateFilter()"> Для даты</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="interviewDateFilter">Дата собеседований</label>
+            <input type="date" id="interviewDateFilter" value="2025-07-03">
+          </div>
+        </div>
+        <div class="table-container">
+          <table id="interviewsTable" class="interviews-table">
+            <thead>
+              <tr>
+                <th>Дата и время</th>
+                <th>ФИО</th>
+                <th>Телефон</th>
+                <th>Должность</th>
+                <th>Комментарий</th>
+                <th>Статус</th>
+                <th>Действие</th>
+              </tr>
+            </thead>
+            <tbody id="interviewsTableBody"></tbody>
+          </table>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="form-btn" onclick="window.saveInterviewChanges()">Сохранить изменения</button>
+        </div>
+      </div>
+      <form id="interviewForm" class="interview-form-container">
+        <p>Анкета на Собеседовании</p>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="interviewFullName">ФИО</label>
+            <input type="text" id="interviewFullName" required>
+            <div id="interviewFullNameError" class="error-message">ФИО должно содержать только буквы, пробелы, дефисы или апострофы (2-100 символов)</div>
+          </div>
+          <div class="form-group">
+            <label for="interviewPhone">Номер телефона</label>
+            <input type="text" id="interviewPhone" placeholder="+7(___)___-__-__" required>
+            <div id="interviewPhoneError" class="error-message">Введите номер в формате +7(XXX)XXX-XX-XX</div>
+          </div>
+          <div class="form-group">
+            <label for="interviewPosition">Должность</label>
+            <input type="text" id="interviewPosition" list="positionList" required>
+            <div id="interviewPositionError" class="error-message">Выберите или введите корректную должность из списка</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="interviewAge">Возраст</label>
+            <input type="number" id="interviewAge" min="16" max="100" required>
+            <div id="interviewAgeError" class="error-message">Возраст должен быть от 16 до 100 лет</div>
+          </div>
+          <div class="form-group">
+            <label for="interviewCitizenship">Гражданство</label>
+            <input type="text" id="interviewCitizenship" required>
+            <div id="interviewCitizenshipError" class="error-message">Введите гражданство</div>
+          </div>
+          <div class="form-group">
+            <label for="interviewStatus">Статус</label>
+            <select id="interviewStatus" onchange="toggleInterviewFields()" required>
+              <option value="Назначено собеседование">Назначено собеседование</option>
+              <option value="Связаться позже">Связаться позже</option>
+              <option value="Кандидат отказался">Кандидат отказался</option>
+              <option value="Отказано кандидату">Отказано кандидату</option>
+            </select>
+            <div id="interviewStatusError" class="error-message">Выберите статус</div>
+          </div>
+        </div>
+        <div class="form-row interview-status-fields" style="display: none;">
+          <div class="form-group">
+            <label for="interviewStatusDate">Дата</label>
+            <input type="date" id="interviewStatusDate" required>
+            <div id="interviewStatusDateError" class="error-message">Дата не может быть раньше текущей</div>
+          </div>
+          <div class="form-group">
+            <label for="interviewStatusTime">Время</label>
+            <input type="time" id="interviewStatusTime" required>
+            <div id="interviewStatusTimeError" class="error-message">Время не может быть раньше текущего для сегодняшней даты</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="interviewSource">Источник</label>
+            <input type="text" id="interviewSource" list="sourceList" required>
+            <div id="interviewSourceError" class="rror-message">Выберите или введите корректный источник</div>
+          </div>
+          <div class="form-group">
+            <label for="interviewRecruiter">Рекрутер</label>
+            <input type="text" id="interviewRecruiter" list="recruiterList" required>
+            <div id="interviewRecruiterError" class="error-message">Выберите или введите корректного рекрутера из списка</div>
+          </div>
+          <div class="form-group">
+            <label>Тип звонка</label>
+            <div class="checkbox-group">
+              <label><input type="radio" name="interviewCallType" value="Входящий" checked> Входящий</label>
+              <label><input type="radio" name="interviewCallType" value="Исходящий"> Исходящий</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Реферальная?</label>
+            <div class="checkbox-group">
+              <label><input type="radio" name="isReferral" value="Да" onclick="toggleReferralField()"> Да</label>
+              <label><input type="radio" name="isReferral" value="Нет" checked onclick="toggleReferralField()"> Нет</label>
+            </div>
+          </div>
+          <div class="form-group referral-field" style="display: none;">
+            <label for="referralName">Фамилия реферала</label>
+            <input type="text" id="referralName">
+            <div id="referralNameError" class="error-message">Введите корректную фамилию</div>
+          </div>
+          <div class="form-group">
+            <label for="fillDate">Дата заполнения</label>
+            <input type="date" id="fillDate" readonly>
+            <div id="fillDateError" class="error-message">Дата заполнения обязательна</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Есть ли мед. книжка?</label>
+            <div class="checkbox-group">
+              <label><input type="radio" name="hasMedicalBook" value="Да"> Да</label>
+              <label><input type="radio" name="hasMedicalBook" value="Нет" checked> Нет</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Рассказано про график?</label>
+            <div class="checkbox-group">
+              <label><input type="radio" name="scheduleExplained" value="Да"> Да</label>
+              <label><input type="radio" name="scheduleExplained" value="Нет" checked> Нет</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Рассказано про систему оплаты?</label>
+            <div class="checkbox-group">
+              <label><input type="radio" name="paymentExplained" value="Да"> Да</label>
+              <label><input type="radio" name="paymentExplained" value="Нет" checked> Нет</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="recommendation">Можете ли вы кого-то рекомендовать на работу к нам?</label>
+            <textarea id="recommendation" maxlength="200" placeholder="Укажите рекомендации"></textarea>
+            <div id="recommendationError" class="error-message">Рекомендация не должна превышать 200 символов</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="interviewComment">Комментарий после собеседования</label>
+            <textarea id="interviewComment" maxlength="200" placeholder="Комментарий после собеседования"></textarea>
+            <div id="interviewCommentError" class="error-message">Комментарий не должен превышать 200 символов</div>
+          </div>
+        </div>
+        <div class="form-group full-width">
+          <div id="interviewFormError" class="error-message"></div>
+          <div id="interviewFormSuccess" class="success-message">Данные успешно сохранены!</div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="form-btn" onclick="window.saveInterviewForm()">Сохранить</button>
+          <button type="button" class="form-btn" onclick="window.closeInterviewForm()">Назад</button>
+        </div>
+      </form>
+      <div id="internshipsContainer" class="internships-container">
+        <div class="form-row date-selector">
+          <div class="form-group">
+            <label>Фильтр стажировок</label>
+            <div class="checkbox-group">
+              <label><input type="radio" name="internshipFilter" id="internshipFilterAll" value="all" checked onclick="window.toggleInternshipDateFilter()"> Все стажировки</label>
+              <label><input type="radio" name="internshipFilter" id="internshipFilterDate" value="date" onclick="window.toggleInternshipDateFilter()"> Для даты</label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="internshipDateFilter">Дата стажировок</label>
+            <input type="date" id="internshipDateFilter" value="2025-07-03">
+          </div>
+        </div>
+        <div class="table-container">
+          <table id="internshipsTable" class="internships-table">
+            <thead>
+              <tr>
+                <th>Дата и время</th>
+                <th>ФИО</th>
+                <th>Телефон</th>
+                <th>Должность</th>
+                <th>Комментарий</th>
+                <th>Статус</th>
+              </tr>
+            </thead>
+            <tbody id="internshipsTableBody"></tbody>
+          </table>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="form-btn" onclick="window.saveInternshipChanges()">Сохранить изменения</button>
+        </div>
+      </div>
+      <div id="loadingOverlay"><div class="spinner"></div></div>
+    </div>
+  </body>
+</html>
