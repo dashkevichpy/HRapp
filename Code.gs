@@ -126,11 +126,13 @@ function getFilteredData(sheetName, status, date) {
 
     const formattedDate = date ? date.split('-').reverse().join('.') : '';
     const data = sheet.getDataRange().getValues();
-    const result = data.slice(1).filter(row => 
-      status.includes(row[8]) && (!formattedDate || (row[8] === 'Назначено собеседование' ? row[9] : row[11]) === formattedDate)
+    const result = data.slice(1).filter(row =>
+      status.includes(row[8]) && (!formattedDate || (
+        ['Назначено собеседование', 'Назначена стажировка'].includes(row[8]) ? row[9] : row[11]
+      ) === formattedDate)
     ).map(row => ({
       id: row[0],
-      dateTime: `${row[8] === 'Назначено собеседование' ? row[9] : row[11]} ${row[8] === 'Назначено собеседование' ? row[10] : row[12]}`,
+      dateTime: `${['Назначено собеседование', 'Назначена стажировка'].includes(row[8]) ? row[9] : row[11]} ${['Назначено собеседование', 'Назначена стажировка'].includes(row[8]) ? row[10] : row[12]}`,
       fullName: String(row[3]).trim(),
       phone: String(row[4]).trim(),
       position: String(row[5]).trim(),
