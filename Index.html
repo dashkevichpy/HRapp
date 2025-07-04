@@ -700,6 +700,108 @@
         <p>Анкета на Стажировки 1го дня</p>
         <div class="form-row">
           <div class="form-group">
+            <label for="internshipFullName">ФИО</label>
+            <input type="text" id="internshipFullName" required>
+          </div>
+          <div class="form-group">
+            <label for="internshipPhone">Номер телефона</label>
+            <input type="text" id="internshipPhone" placeholder="+7(___)___-__-__" required>
+          </div>
+          <div class="form-group">
+            <label for="internshipPosition">Должность</label>
+            <input type="text" id="internshipPosition" list="positionList" required>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="internshipAge">Возраст</label>
+            <input type="number" id="internshipAge" min="16" max="100" required>
+          </div>
+          <div class="form-group">
+            <label for="internshipCitizenship">Гражданство</label>
+            <input type="text" id="internshipCitizenship" required>
+          </div>
+          <div class="form-group">
+            <label for="internshipStatus">Статус</label>
+            <select id="internshipStatus" required>
+              <option value="Назначена стажировка">Назначена стажировка</option>
+              <option value="Связаться позже">Связаться позже</option>
+              <option value="Кандидат отказался">Кандидат отказался</option>
+              <option value="Отказано кандидату">Отказано кандидату</option>
+              <option value="Принят на работу">Принят на работу</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row internship-status-fields" style="display:none;">
+          <div class="form-group">
+            <label for="internshipStatusDate">Дата</label>
+            <input type="date" id="internshipStatusDate">
+          </div>
+          <div class="form-group">
+            <label for="internshipStatusTime">Время</label>
+            <input type="time" id="internshipStatusTime">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="internshipSource">Источник</label>
+            <input type="text" id="internshipSource" list="sourceList" required>
+          </div>
+          <div class="form-group">
+            <label for="internshipRecruiter">Рекрутер</label>
+            <input type="text" id="internshipRecruiter" list="recruiterList" required>
+          </div>
+          <div class="form-group">
+            <label>Тип звонка</label>
+            <div class="checkbox-group">
+              <label><input type="radio" name="internshipCallType" value="Входящий" checked> Входящий</label>
+              <label><input type="radio" name="internshipCallType" value="Исходящий"> Исходящий</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Реферальная?</label>
+            <div class="checkbox-group">
+              <label><input type="radio" name="internshipIsReferral" value="Да"> Да</label>
+              <label><input type="radio" name="internshipIsReferral" value="Нет" checked> Нет</label>
+            </div>
+          </div>
+          <div class="form-group internship-referral" style="display:none;">
+            <label for="internshipReferralName">Фамилия реферала</label>
+            <input type="text" id="internshipReferralName">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label>Дополнительно</label>
+            <div class="checkbox-group">
+              <label><input type="checkbox" id="hasMedicalBook"> Мед. книжка есть</label>
+              <label><input type="checkbox" id="scheduleExplained"> Рассказано про график</label>
+              <label><input type="checkbox" id="paymentExplained"> Рассказано про оплату</label>
+            </div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="internshipComment">Комментарий</label>
+            <textarea id="internshipComment" maxlength="200"></textarea>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="internshipRecommendation">Можете ли вы кого-то рекомендовать на работу к нам?</label>
+            <textarea id="internshipRecommendation" maxlength="200"></textarea>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="internshipInterviewComment">Комментарий после собеседования</label>
+            <textarea id="internshipInterviewComment" maxlength="200"></textarea>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
             <label><input type="checkbox" id="medicalBookSubmitted" onclick="toggleMedicalFields()"> Мед. книжка сдана</label>
           </div>
           <div class="form-group">
