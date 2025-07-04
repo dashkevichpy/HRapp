@@ -1,3 +1,13 @@
+const COMPANY_NAME = 'ФК НСК';
+const SUPPORT_SHEET_NAME = 'support';
+const SUPPORT_START_ROW = 2;
+const POSITION_COL = 1;
+const SOURCE_COL = 2;
+const RECRUITER_COL = 3;
+const CANDIDATE_SHEET_NAME = 'Анкеты';
+const CACHE_EXPIRATION = 21600; // 6 hours
+const cache = CacheService.getScriptCache();
+
 class Candidate {
   constructor(data = {}) {
     this.id = data.id || Utilities.getUuid();
@@ -18,7 +28,7 @@ class Candidate {
     this.recruiter = data.recruiter || '';
     this.callType = data.callType || 'Входящий';
     this.comment = data.comment || '';
-    this.company = 'ФК НСК';
+    this.company = COMPANY_NAME;
     this.isReferral = data.isReferral || 'Нет';
     this.referralName = data.referralName || '';
     this.fillDate = data.fillDate || '';
@@ -42,6 +52,23 @@ class Candidate {
   }
 }
 
+function computeHash(row) {
+  const bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, row.join('|'));
+  return bytes.map(b => ('0' + (b & 0xff).toString(16)).slice(-2)).join('');
+}
+
+function setCandidateCache(candidate) {
+  const row = candidate.toRow();
+  const hash = computeHash(row);
+  cache.put('cand_' + candidate.id, JSON.stringify({ row, hash }), CACHE_EXPIRATION);
+  return { row, hash };
+}
+
+function getCandidateCache(id) {
+  const cached = cache.get('cand_' + id);
+  return cached ? JSON.parse(cached) : null;
+}
+
 function getSpreadsheet() {
   return SpreadsheetApp.openById('1rsTqSA8hrYMgoMDntq3qs-JawEUFwkIDFimLY9Q2KJo');
 }
@@ -49,7 +76,7 @@ function getSpreadsheet() {
 function doGet() {
   return HtmlService.createTemplateFromFile('Index')
     .evaluate()
-    .setTitle('HR Форма для Фабрика НСК')
+    .setTitle('HR Форма для ' + COMPANY_NAME)
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
@@ -58,21 +85,21 @@ function include(filename) {
 }
 
 function getSupportData() {
-  const sheet = getSpreadsheet().getSheetByName('support');
+  const sheet = getSpreadsheet().getSheetByName(SUPPORT_SHEET_NAME);
   const lastRow = sheet.getLastRow();
-  if (lastRow < 2) {
+  if (lastRow < SUPPORT_START_ROW) {
     return { status: 'success', positions: [], sources: [], recruiters: [] };
   }
-  const data = sheet.getRange(2, 1, lastRow - 1, 3).getValues();
-  const positions = data.map(row => row[0]).filter(String);
-  const sources = data.map(row => row[1]).filter(String);
-  const recruiters = data.map(row => row[2]).filter(String);
+  const data = sheet.getRange(SUPPORT_START_ROW, POSITION_COL, lastRow - SUPPORT_START_ROW + 1, 3).getValues();
+  const positions = data.map(row => row[POSITION_COL - 1]).filter(String);
+  const sources = data.map(row => row[SOURCE_COL - 1]).filter(String);
+  const recruiters = data.map(row => row[RECRUITER_COL - 1]).filter(String);
   return { status: 'success', positions, sources, recruiters };
 }
 
 function saveCandidate(data) {
   try {
-    const sheet = getSpreadsheet().getSheetByName('Анкеты') || getSpreadsheet().insertSheet('Анкеты');
+    const sheet = getSpreadsheet().getSheetByName(CANDIDATE_SHEET_NAME) || getSpreadsheet().insertSheet(CANDIDATE_SHEET_NAME);
     const headers = [
       'ID', 'Дата создания', 'Время создания', 'ФИО', 'Телефон', 'Должность', 'Возраст', 'Гражданство', 'Статус',
       'Дата собеседования', 'Время собеседования', 'Дата связи', 'Время связи', 'Источник', 'Рекрутер', 'Тип звонка',
@@ -92,6 +119,7 @@ function saveCandidate(data) {
     });
 
     sheet.appendRow(candidate.toRow());
+    setCandidateCache(candidate);
     sheet.getRange(sheet.getLastRow(), 2, 1, 3).setNumberFormat('@');
     sheet.getRange(sheet.getLastRow(), 10, 1, 2).setNumberFormat('@');
     sheet.getRange(sheet.getLastRow(), 12, 1, 2).setNumberFormat('@');
@@ -149,16 +177,16 @@ function getFilteredData(sheetName, status, date) {
 }
 
 function getInterviewsByDate(date) {
-  return getFilteredData('Анкеты', ['Назначено собеседование', 'Связаться позже'], date);
+  return getFilteredData(CANDIDATE_SHEET_NAME, ['Назначено собеседование', 'Связаться позже'], date);
 }
 
 function getInternshipsByDate(date) {
-  return getFilteredData('Анкеты', ['Назначена стажировка'], date);
+  return getFilteredData(CANDIDATE_SHEET_NAME, ['Назначена стажировка'], date);
 }
 
 function updateStatuses(updates, validStatuses) {
   try {
-    const sheet = getSpreadsheet().getSheetByName('Анкеты');
+    const sheet = getSpreadsheet().getSheetByName(CANDIDATE_SHEET_NAME);
     const data = sheet.getDataRange().getValues();
     updates.forEach(update => {
       if (!validStatuses.includes(update.status)) throw new Error(`Недопустимый статус: ${update.status}`);
@@ -175,6 +203,7 @@ function updateStatuses(updates, validStatuses) {
         sheet.getRange(rowIndex + 1, 10, 1, 2).setNumberFormat('@');
         sheet.getRange(rowIndex + 1, 12, 1, 2).setNumberFormat('@');
         logStatusChange(update.id, oldStatus, update.status, update.recruiter, `Изменение статуса ${validStatuses.includes('Назначена стажировка') ? 'стажировки' : 'собеседования'}`);
+        cache.removeAll(['cand_' + update.id]);
       }
     });
     return { status: 'success' };
@@ -193,15 +222,16 @@ function updateInternshipStatuses(updates) {
 
 function getCandidateById(id) {
   try {
-    const sheet = getSpreadsheet().getSheetByName('Анкеты');
+    const cached = getCandidateCache(id);
+    if (cached) return { status: 'success', data: cached.row };
+
+    const sheet = getSpreadsheet().getSheetByName(CANDIDATE_SHEET_NAME);
     if (!sheet) return { status: 'error', message: 'Лист "Анкеты" не найден' };
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
-    const row = data.slice(1).find(row => row[0] === id);
+    const row = data.slice(1).find(r => r[0] === id);
     if (!row) return { status: 'error', message: 'Кандидат не найден' };
-    return {
-      status: 'success',
-      data: new Candidate({
+    const candidate = new Candidate({
         id: row[headers.indexOf('ID')],
         dateCreated: row[headers.indexOf('Дата создания')],
         timeCreated: row[headers.indexOf('Время создания')],
@@ -228,8 +258,9 @@ function getCandidateById(id) {
         recommendation: row[headers.indexOf('Рекомендация')] || '',
         interviewComment: row[headers.indexOf('Комментарий после собеседования')] || '',
         refusalComment: row[headers.indexOf('Комментарий отказа')] || ''
-      }).toRow()
-    };
+        });
+    const cachedData = setCandidateCache(candidate);
+    return { status: 'success', data: cachedData.row };
   } catch (e) {
     return { status: 'error', message: `Ошибка: ${e.message}` };
   }
@@ -237,7 +268,7 @@ function getCandidateById(id) {
 
 function saveInterview(data) {
   try {
-    const sheet = getSpreadsheet().getSheetByName('Анкеты');
+    const sheet = getSpreadsheet().getSheetByName(CANDIDATE_SHEET_NAME);
     if (!sheet) return { status: 'error', message: 'Лист "Анкеты" не найден' };
     const dataRange = sheet.getDataRange().getValues();
     const headers = dataRange[0];
@@ -280,6 +311,7 @@ function saveInterview(data) {
     sheet.getRange(rowIndex + 1, 10, 1, 2).setNumberFormat('@');
     sheet.getRange(rowIndex + 1, 12, 1, 2).setNumberFormat('@');
     logStatusChange(data.id, dataRange[rowIndex][headers.indexOf('Статус')], data.status, data.recruiter, 'Изменение после собеседования');
+    setCandidateCache(candidate);
     return { status: 'success' };
   } catch (e) {
     return { status: 'error', message: `Ошибка сохранения: ${e.message}` };
