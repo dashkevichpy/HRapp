@@ -183,7 +183,14 @@ function getFilteredData(sheetName, status, date) {
       status: row[8],
       followupDate: row[11] ? row[11].split('.').reverse().join('-') : '',
       followupTime: row[12] || ''
-    }));
+    })).sort((a, b) => {
+      const getDate = obj => {
+        const date = obj.interviewDate || obj.followupDate || '';
+        const time = obj.interviewDate ? obj.interviewTime : obj.followupTime;
+        return new Date(`${date}T${time || '00:00'}`);
+      };
+      return getDate(a) - getDate(b);
+    });
     return { status: 'success', interviews: result };
   } catch (e) {
     return { status: 'error', message: `Ошибка загрузки: ${e.message}` };
