@@ -15,7 +15,7 @@ class Candidate {
     this.dateCreated = now.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
     this.timeCreated = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
     this.fullName = data.fullName || '';
-    this.phone = data.phone || '';
+    this.phone = data.phone ? String(data.phone).replace(/^'/, '') : '';
     this.position = data.position || '';
     this.age = data.age || '';
     this.citizenship = data.citizenship || '';
@@ -210,7 +210,8 @@ function updateStatuses(updates, validStatuses) {
       if (oldStatus !== update.status) {
         sheet.getRange(rowIndex + 1, 9).setValue(update.status);
         sheet.getRange(rowIndex + 1, 27).setValue(['Кандидат отказался', 'Отказано кандидату'].includes(update.status) ? update.refusalComment : '');
-        logStatusChange(update.id, oldStatus, update.status, update.recruiter, `Изменение статуса ${validStatuses.includes('Назначена стажировка') ? 'стажировки' : 'собеседования'}`);
+        logStatusChange(update.id, oldStatus, update.status, update.recruiter,
+          `Изменение статуса ${validStatuses.includes('Назначена стажировка') || validStatuses.includes('Принят на работу') ? 'стажировки' : 'собеседования'}`);
       }
       if (update.status === 'Связаться позже') {
         sheet.getRange(rowIndex + 1, 12).setValue(update.followupDate.split('-').reverse().join('.'));
@@ -242,7 +243,7 @@ function updateInterviewStatuses(updates) {
 }
 
 function updateInternshipStatuses(updates) {
-  return updateStatuses(updates, ['Связаться позже', 'Кандидат отказался', 'Отказано кандидату']);
+  return updateStatuses(updates, ['Связаться позже', 'Кандидат отказался', 'Отказано кандидату', 'Принят на работу']);
 }
 
 function getCandidateById(id) {
@@ -365,29 +366,31 @@ function saveInternship(data) {
       id: data.id,
       dateCreated: rowData[headers.indexOf('Дата создания')],
       timeCreated: rowData[headers.indexOf('Время создания')],
-      fullName: rowData[headers.indexOf('ФИО')],
-      phone: rowData[headers.indexOf('Телефон')],
-      position: rowData[headers.indexOf('Должность')],
-      age: rowData[headers.indexOf('Возраст')],
-      citizenship: rowData[headers.indexOf('Гражданство')],
-      status: rowData[headers.indexOf('Статус')],
+      fullName: data.fullName,
+      phone: data.phone,
+      position: data.position,
+      age: data.age,
+      citizenship: data.citizenship,
+      status: data.status,
       interviewDate: rowData[headers.indexOf('Дата собеседования')],
       interviewTime: rowData[headers.indexOf('Время собеседования')],
       followupDate: rowData[headers.indexOf('Дата связи')],
       followupTime: rowData[headers.indexOf('Время связи')],
-      source: rowData[headers.indexOf('Источник')],
-      recruiter: rowData[headers.indexOf('Рекрутер')],
-      callType: rowData[headers.indexOf('Тип звонка')],
-      comment: rowData[headers.indexOf('Комментарий')],
-      isReferral: rowData[headers.indexOf('Реферальная')] || 'Нет',
-      referralName: rowData[headers.indexOf('Фамилия реферала')] || '',
+      followupDate: data.status === 'Связаться позже' ? data.statusDate.split('-').reverse().join('.') : rowData[headers.indexOf('Дата связи')],
+      followupTime: data.status === 'Связаться позже' ? data.statusTime : rowData[headers.indexOf('Время связи')],
+      source: data.source,
+      recruiter: data.recruiter,
+      callType: data.callType,
+      comment: data.comment,
+      isReferral: data.isReferral,
+      referralName: data.referralName,
       fillDate: rowData[headers.indexOf('Дата заполнения')] || '',
-      hasMedicalBook: rowData[headers.indexOf('Мед. книжка')] || 'Нет',
-      scheduleExplained: rowData[headers.indexOf('Рассказано про график')] || 'Нет',
-      paymentExplained: rowData[headers.indexOf('Рассказано про оплату')] || 'Нет',
-      recommendation: rowData[headers.indexOf('Рекомендация')] || '',
-      interviewComment: rowData[headers.indexOf('Комментарий после собеседования')] || '',
-      refusalComment: rowData[headers.indexOf('Комментарий отказа')] || '',
+      hasMedicalBook: data.hasMedicalBook,
+      scheduleExplained: data.scheduleExplained,
+      paymentExplained: data.paymentExplained,
+      recommendation: data.recommendation,
+      interviewComment: data.interviewComment,
+      refusalComment: data.refusalComment || rowData[headers.indexOf('Комментарий отказа')] || '',
       internshipFillDate: data.internshipFillDate,
       medicalBookSubmitted: data.medicalBookSubmitted,
       apprenticeshipContract: data.apprenticeshipContract,
@@ -401,6 +404,8 @@ function saveInternship(data) {
     sheet.getRange(rowIndex + 1, 2, 1, 3).setNumberFormat('@');
     sheet.getRange(rowIndex + 1, 10, 1, 2).setNumberFormat('@');
     sheet.getRange(rowIndex + 1, 12, 1, 2).setNumberFormat('@');
+    logStatusChange(data.id, rowData[headers.indexOf('Статус')], data.status, data.recruiter, 'Изменение после стажировки');
+    setCandidateCache(candidate);
     return { status: 'success' };
   } catch (e) {
     return { status: 'error', message: `Ошибка сохранения: ${e.message}` };
