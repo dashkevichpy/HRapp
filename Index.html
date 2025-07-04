@@ -628,32 +628,14 @@
             <input type="text" id="referralName">
             <div id="referralNameError" class="error-message">Введите корректную фамилию</div>
           </div>
-          <div class="form-group">
-            <label for="fillDate">Дата заполнения</label>
-            <input type="date" id="fillDate" readonly>
-            <div id="fillDateError" class="error-message">Дата заполнения обязательна</div>
-          </div>
         </div>
         <div class="form-row">
-          <div class="form-group">
-            <label>Есть ли мед. книжка?</label>
+          <div class="form-group full-width">
+            <label>Дополнительно</label>
             <div class="checkbox-group">
-              <label><input type="radio" name="hasMedicalBook" value="Да"> Да</label>
-              <label><input type="radio" name="hasMedicalBook" value="Нет" checked> Нет</label>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Рассказано про график?</label>
-            <div class="checkbox-group">
-              <label><input type="radio" name="scheduleExplained" value="Да"> Да</label>
-              <label><input type="radio" name="scheduleExplained" value="Нет" checked> Нет</label>
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Рассказано про систему оплаты?</label>
-            <div class="checkbox-group">
-              <label><input type="radio" name="paymentExplained" value="Да"> Да</label>
-              <label><input type="radio" name="paymentExplained" value="Нет" checked> Нет</label>
+              <label><input type="checkbox" id="hasMedicalBook"> Мед. книжка есть</label>
+              <label><input type="checkbox" id="scheduleExplained"> Рассказано про график</label>
+              <label><input type="checkbox" id="paymentExplained"> Рассказано про оплату</label>
             </div>
           </div>
         </div>
