@@ -42,19 +42,48 @@
     document.getElementById('internshipsContainer').classList.remove('show');
     loadLists();
     document.getElementById('interviewForm').dataset.row = row;
+    document.getElementById('loadingOverlay').classList.add('show');
     google.script.run
       .withSuccessHandler(function(response) {
+        document.getElementById('loadingOverlay').classList.remove('show');
         if (response.status === 'success') {
-          document.getElementById('interviewFullName').value = response.data[3];
+          const data = response.data;
+          document.getElementById('interviewFullName').value = data[3];
           const phoneInput = document.getElementById('interviewPhone');
-          phoneInput.value = response.data[4];
+          phoneInput.value = data[4];
           IMask(phoneInput, { mask: '+7(000)000-00-00', lazy: false, placeholderChar: '_' }).updateValue();
-          document.getElementById('interviewPosition').value = response.data[5];
-          document.getElementById('interviewAge').value = response.data[6];
-          document.getElementById('interviewCitizenship').value = response.data[7];
-          document.getElementById('interviewSource').value = response.data[13];
-          document.getElementById('interviewRecruiter').value = response.data[14];
+          document.getElementById('interviewPosition').value = data[5];
+          document.getElementById('interviewAge').value = data[6];
+          document.getElementById('interviewCitizenship').value = data[7];
+          document.getElementById('interviewSource').value = data[13];
+          document.getElementById('interviewRecruiter').value = data[14];
+          document.querySelector(`input[name="interviewCallType"][value="${data[15]}"]`).checked = true;
+          document.querySelector(`input[name="isReferral"][value="${data[18]}"]`).checked = true;
+          document.getElementById('referralName').value = data[19];
+          document.getElementById('hasMedicalBook').checked = data[21] === 'Да';
+          document.getElementById('scheduleExplained').checked = data[22] === 'Да';
+          document.getElementById('paymentExplained').checked = data[23] === 'Да';
+          document.getElementById('recommendation').value = data[24];
+          document.getElementById('interviewComment').value = data[25];
+          document.getElementById('interviewStatus').value = data[8];
+          if (data[8] === 'Связаться позже') {
+            document.getElementById('interviewStatusDate').value = data[11] ? data[11].split('.').reverse().join('-') : '';
+            document.getElementById('interviewStatusTime').value = data[12] || '';
+          } else if (data[8] === 'Назначена стажировка') {
+            document.getElementById('interviewStatusDate').value = data[9] ? data[9].split('.').reverse().join('-') : '';
+            document.getElementById('interviewStatusTime').value = data[10] || '';
+          } else {
+            document.getElementById('interviewStatusDate').value = '';
+            document.getElementById('interviewStatusTime').value = '';
+          }
+          toggleInterviewFields();
+          toggleReferralField();
         }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loadingOverlay').classList.remove('show');
+        document.getElementById('formError').textContent = 'Ошибка загрузки: ' + error;
+        document.getElementById('formError').style.display = 'block';
       })
       .getCandidateById(row);
   }
