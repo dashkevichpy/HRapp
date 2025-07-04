@@ -7,6 +7,10 @@ const RECRUITER_COL = 3;
 const CANDIDATE_SHEET_NAME = 'Анкеты';
 const CACHE_EXPIRATION = 21600; // 6 hours
 const cache = CacheService.getScriptCache();
+const SPREADSHEET_ID = '1rsTqSA8hrYMgoMDntq3qs-JawEUFwkIDFimLY9Q2KJo';
+let spreadsheet = null;
+const TOTAL_COLS = 35;
+const LAST_COL_LETTER = 'AI';
 
 class Candidate {
   constructor(data = {}) {
@@ -80,7 +84,10 @@ function getCandidateCache(id) {
 }
 
 function getSpreadsheet() {
-  return SpreadsheetApp.openById('1rsTqSA8hrYMgoMDntq3qs-JawEUFwkIDFimLY9Q2KJo');
+  if (!spreadsheet) {
+    spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+  }
+  return spreadsheet;
 }
 
 function doGet() {
@@ -95,16 +102,22 @@ function include(filename) {
 }
 
 function getSupportData() {
+  const cached = cache.get('support_data');
+  if (cached) return JSON.parse(cached);
   const sheet = getSpreadsheet().getSheetByName(SUPPORT_SHEET_NAME);
   const lastRow = sheet.getLastRow();
+  let result;
   if (lastRow < SUPPORT_START_ROW) {
-    return { status: 'success', positions: [], sources: [], recruiters: [] };
+    result = { status: 'success', positions: [], sources: [], recruiters: [] };
+  } else {
+    const data = sheet.getRange(SUPPORT_START_ROW, POSITION_COL, lastRow - SUPPORT_START_ROW + 1, 3).getValues();
+    const positions  = data.map(row => row[POSITION_COL - 1]).filter(String);
+    const sources    = data.map(row => row[SOURCE_COL - 1]).filter(String);
+    const recruiters = data.map(row => row[RECRUITER_COL - 1]).filter(String);
+    result = { status: 'success', positions, sources, recruiters };
   }
-  const data = sheet.getRange(SUPPORT_START_ROW, POSITION_COL, lastRow - SUPPORT_START_ROW + 1, 3).getValues();
-  const positions = data.map(row => row[POSITION_COL - 1]).filter(String);
-  const sources = data.map(row => row[SOURCE_COL - 1]).filter(String);
-  const recruiters = data.map(row => row[RECRUITER_COL - 1]).filter(String);
-  return { status: 'success', positions, sources, recruiters };
+  cache.put('support_data', JSON.stringify(result), CACHE_EXPIRATION);
+  return result;
 }
 
 function saveCandidate(data) {
@@ -209,36 +222,52 @@ function updateStatuses(updates, validStatuses) {
   try {
     const sheet = getSpreadsheet().getSheetByName(CANDIDATE_SHEET_NAME);
     const data = sheet.getDataRange().getValues();
+    const idMap = new Map();
+    for (let i = 1; i < data.length; i++) {
+      idMap.set(data[i][0], i);
+    }
+    const ranges = [];
+    const values = [];
+    const formatRanges = [];
+    const cacheKeys = [];
     updates.forEach(update => {
       if (!validStatuses.includes(update.status)) throw new Error(`Недопустимый статус: ${update.status}`);
-      const rowIndex = data.findIndex(row => row[0] === update.id);
-      if (rowIndex === -1) throw new Error(`Кандидат ${update.id} не найден`);
-      const oldStatus = data[rowIndex][8];
+      const rowIndex = idMap.get(update.id);
+      if (rowIndex === undefined) throw new Error(`Кандидат ${update.id} не найден`);
+      const row = data[rowIndex].slice();
+      const oldStatus = row[8];
       if (oldStatus !== update.status) {
-        sheet.getRange(rowIndex + 1, 9).setValue(update.status);
-        sheet.getRange(rowIndex + 1, 27).setValue(['Кандидат отказался', 'Отказано кандидату'].includes(update.status) ? update.refusalComment : '');
+        row[8] = update.status;
+        row[26] = ['Кандидат отказался', 'Отказано кандидату'].includes(update.status) ? update.refusalComment : '';
         logStatusChange(update.id, oldStatus, update.status, update.recruiter,
           `Изменение статуса ${validStatuses.includes('Назначена стажировка') || validStatuses.includes('Принят на работу') ? 'стажировки' : 'собеседования'}`);
       }
       if (update.status === 'Связаться позже') {
-        sheet.getRange(rowIndex + 1, 12).setValue(update.followupDate.split('-').reverse().join('.'));
-        sheet.getRange(rowIndex + 1, 13).setValue(update.followupTime);
-        sheet.getRange(rowIndex + 1, 10).setValue('');
-        sheet.getRange(rowIndex + 1, 11).setValue('');
+        row[11] = update.followupDate.split('-').reverse().join('.');
+        row[12] = update.followupTime;
+        row[9] = '';
+        row[10] = '';
       } else if (update.status === 'Назначена стажировка') {
-        sheet.getRange(rowIndex + 1, 10).setValue(update.interviewDate.split('-').reverse().join('.'));
-        sheet.getRange(rowIndex + 1, 11).setValue(update.interviewTime);
-        sheet.getRange(rowIndex + 1, 12).setValue('');
-        sheet.getRange(rowIndex + 1, 13).setValue('');
+        row[9] = update.interviewDate.split('-').reverse().join('.');
+        row[10] = update.interviewTime;
+        row[11] = '';
+        row[12] = '';
       } else {
-        sheet.getRange(rowIndex + 1, 10).setValue('');
-        sheet.getRange(rowIndex + 1, 11).setValue('');
-        sheet.getRange(rowIndex + 1, 12).setValue('');
-        sheet.getRange(rowIndex + 1, 13).setValue('');
+        row[9] = '';
+        row[10] = '';
+        row[11] = '';
+        row[12] = '';
       }
-      sheet.getRange(rowIndex + 1, 10, 1, 4).setNumberFormat('@');
-      cache.removeAll(['cand_' + update.id]);
+      ranges.push(`A${rowIndex + 1}:${LAST_COL_LETTER}${rowIndex + 1}`);
+      values.push(row);
+      formatRanges.push(`J${rowIndex + 1}:M${rowIndex + 1}`);
+      cacheKeys.push('cand_' + update.id);
     });
+    if (ranges.length) {
+      sheet.getRangeList(ranges).setValues(values);
+      sheet.getRangeList(formatRanges).setNumberFormat('@');
+      cache.removeAll(cacheKeys);
+    }
     return { status: 'success' };
   } catch (e) {
     return { status: 'error', message: `Ошибка сохранения: ${e.message}` };
