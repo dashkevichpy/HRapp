@@ -135,7 +135,10 @@
   // Переключить поля в форме интервью
   function toggleInterviewFields() {
     const status = document.getElementById('interviewStatus')?.value;
-    document.querySelector('.interview-status-fields').style.display = status === 'Связаться позже' ? 'flex' : 'none';
+    document.querySelector('.interview-status-fields').style.display =
+      status === 'Связаться позже' || status === 'Назначена стажировка'
+        ? 'flex'
+        : 'none';
     toggleReferralField();
   }
 
@@ -266,7 +269,7 @@
         dateEl.classList.add('error');
         isValid = false;
       } else if (d.getTime() === today.getTime() && dt <= now) {
-        timeErrEl.textContent = 'Время не может быть раньше текущего';
+        timeErrEl.textContent = 'Время не может быть раньше текущего для сегодняшней даты';
         timeErrEl.style.display = 'block';
         timeEl.classList.add('error');
         isValid = false;
@@ -289,7 +292,10 @@
         document.getElementById('followupTimeError')
       );
     }
-    if (isInterview && status === 'Связаться позже') {
+    if (
+      isInterview &&
+      (status === 'Связаться позже' || status === 'Назначена стажировка')
+    ) {
       checkDate(
         document.getElementById('interviewStatusDate'),
         document.getElementById('interviewStatusTime'),
@@ -505,7 +511,7 @@
 
   // Загрузить и отобразить стажировки
   function loadInternships() {
-    const dateFilter = document.getElementElementById('internshipFilterAll').checked
+    const dateFilter = document.getElementById('internshipFilterAll').checked
       ? ''
       : document.getElementById('internshipDateFilter').value;
     document.getElementById('loadingOverlay').classList.add('show');
