@@ -243,7 +243,7 @@ function updateInterviewStatuses(updates) {
 }
 
 function updateInternshipStatuses(updates) {
-  return updateStatuses(updates, ['Связаться позже', 'Кандидат отказался', 'Отказано кандидату', 'Принят на работу']);
+  return updateStatuses(updates, ['Назначена стажировка', 'Связаться позже', 'Кандидат отказался', 'Отказано кандидату', 'Принят на работу']);
 }
 
 function getCandidateById(id) {
