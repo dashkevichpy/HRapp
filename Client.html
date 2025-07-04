@@ -1,0 +1,615 @@
+<script>
+  // Форматирование даты в YYYY-MM-DD
+  function formatDate(date) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${year}-${month}-${day}`;
+  }
+
+  // Форматирование времени в HH:MM
+  function formatTime(date) {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+  }
+
+  // Открыть форму добавления соискателя
+  function openAddCandidate() {
+    document.getElementById('addCandidateForm').classList.add('show');
+    document.getElementById('interviewsContainer').classList.remove('show');
+    document.getElementById('interviewForm').classList.remove('show');
+    document.getElementById('internshipsContainer').classList.remove('show');
+    clearForm();
+    loadLists();
+    document.getElementById('fillDate').value = formatDate(new Date());
+  }
+
+  // Открыть список собеседований
+  function openInterviews() {
+    document.getElementById('addCandidateForm').classList.remove('show');
+    document.getElementById('interviewsContainer').classList.add('show');
+    document.getElementById('interviewForm').classList.remove('show');
+    document.getElementById('internshipsContainer').classList.remove('show');
+    loadInterviews();
+  }
+
+  // Открыть форму интервью по ID
+  function openInterviewForm(row) {
+    document.getElementById('addCandidateForm').classList.remove('show');
+    document.getElementById('interviewsContainer').classList.remove('show');
+    document.getElementById('interviewForm').classList.add('show');
+    document.getElementById('internshipsContainer').classList.remove('show');
+    document.getElementById('fillDate').value = formatDate(new Date());
+    loadLists();
+    document.getElementById('interviewForm').dataset.row = row;
+    google.script.run
+      .withSuccessHandler(function(response) {
+        if (response.status === 'success') {
+          document.getElementById('interviewFullName').value = response.data[3];
+          const phoneInput = document.getElementById('interviewPhone');
+          phoneInput.value = response.data[4];
+          IMask(phoneInput, { mask: '+7(000)000-00-00', lazy: false, placeholderChar: '_' }).updateValue();
+          document.getElementById('interviewPosition').value = response.data[5];
+          document.getElementById('interviewAge').value = response.data[6];
+          document.getElementById('interviewCitizenship').value = response.data[7];
+          document.getElementById('interviewSource').value = response.data[13];
+          document.getElementById('interviewRecruiter').value = response.data[14];
+        }
+      })
+      .getCandidateById(row);
+  }
+
+  // Закрыть форму интервью
+  function closeInterviewForm() {
+    document.getElementById('addCandidateForm').classList.remove('show');
+    document.getElementById('interviewsContainer').classList.add('show');
+    document.getElementById('interviewForm').classList.remove('show');
+    document.getElementById('internshipsContainer').classList.remove('show');
+    clearInterviewForm();
+    loadInterviews();
+  }
+
+  // Открыть список стажировок
+  function openInternships() {
+    document.getElementById('addCandidateForm').classList.remove('show');
+    document.getElementById('interviewsContainer').classList.remove('show');
+    document.getElementById('interviewForm').classList.remove('show');
+    document.getElementById('internshipsContainer').classList.add('show');
+    loadInternships();
+  }
+
+  // Загрузить справочные списки
+  function loadLists() {
+    google.script.run
+      .withSuccessHandler(function(data) {
+        if (data.status !== 'success') {
+          console.error('Failed to load lists:', data.message);
+          document.getElementById('formError').textContent = 'Ошибка загрузки списков: ' + data.message;
+          document.getElementById('formError').style.display = 'block';
+          return;
+        }
+        const positionList  = document.getElementById('positionList');
+        const sourceList    = document.getElementById('sourceList');
+        const recruiterList = document.getElementById('recruiterList');
+        if (positionList && sourceList && recruiterList) {
+          positionList.innerHTML  = '';
+          sourceList.innerHTML    = '';
+          recruiterList.innerHTML = '';
+          data.positions.forEach(pos => {
+            const opt = document.createElement('option');
+            opt.value = pos;
+            positionList.appendChild(opt);
+          });
+          data.sources.forEach(src => {
+            const opt = document.createElement('option');
+            opt.value = src;
+            sourceList.appendChild(opt);
+          });
+          data.recruiters.forEach(rec => {
+            const opt = document.createElement('option');
+            opt.value = rec;
+            recruiterList.appendChild(opt);
+          });
+        } else {
+          console.error('One or more datalist elements not found');
+          document.getElementById('formError').textContent = 'Ошибка: элементы списка не найдены';
+          document.getElementById('formError').style.display = 'block';
+        }
+      })
+      .withFailureHandler(function(error) {
+        console.error('Failed to load lists:', error);
+        document.getElementById('formError').textContent = 'Ошибка загрузки списков: ' + error;
+        document.getElementById('formError').style.display = 'block';
+      })
+      .getSupportData();
+  }
+
+  // Переключить поля в форме добавления кандидата
+  function toggleFields() {
+    const status = document.getElementById('status')?.value;
+    document.querySelector('.interview-fields').style.display        = status === 'Назначено собеседование' ? 'flex' : 'none';
+    document.querySelector('.followup-fields').style.display         = status === 'Связаться позже'         ? 'flex' : 'none';
+    document.querySelector('.refusal-comment-field').style.display   = (status === 'Кандидат отказался' || status === 'Отказано кандидату') ? 'block' : 'none';
+  }
+
+  // Переключить поля в форме интервью
+  function toggleInterviewFields() {
+    const status = document.getElementById('interviewStatus')?.value;
+    document.querySelector('.interview-status-fields').style.display = status === 'Связаться позже' ? 'flex' : 'none';
+    toggleReferralField();
+  }
+
+  // Показать/скрыть поле реферала
+  function toggleReferralField() {
+    const show = document.querySelector('input[name="isReferral"]:checked')?.value === 'Да';
+    document.querySelector('.referral-field').style.display = show ? 'block' : 'none';
+  }
+
+  // Переключатель фильтра даты собеседований
+  function toggleDateFilter() {
+    const dateFilter = document.getElementById('interviewDateFilter');
+    if (document.getElementById('interviewFilterAll').checked) {
+      dateFilter.disabled = true;
+    } else {
+      dateFilter.disabled = false;
+      dateFilter.value = formatDate(new Date());
+    }
+    loadInterviews();
+  }
+
+
+  // Переключатель фильтра даты стажировок
+  function toggleInternshipDateFilter() {
+    const df = document.getElementById('internshipDateFilter');
+    df.disabled = document.getElementById('internshipFilterAll').checked;
+    loadInternships();
+  }
+
+  // Очистить форму добавления кандидата
+  function clearForm() {
+    const form = document.getElementById('addCandidateForm');
+    form.reset();
+    document.getElementById('fullName').value = '';
+    const phoneInput = document.getElementById('phone');
+    if (phoneInput) {
+      IMask(phoneInput, { mask: '+7(000)000-00-00', lazy: false, placeholderChar: '_' });
+      phoneInput.value = '+7(___)___-__-__';
+    }
+    document.getElementById('fillDate').value = formatDate(new Date());
+    document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+    document.getElementById('formSuccess').style.display = 'none';
+    toggleFields();
+  }
+
+  // Очистить форму интервью
+  function clearInterviewForm() {
+    const form     = document.getElementById('interviewForm');
+    const fullName = document.getElementById('interviewFullName').value;
+    const phone    = document.getElementById('interviewPhone').value;
+    form.reset();
+    document.getElementById('interviewFullName').value = fullName;
+    const phoneInput = document.getElementById('interviewPhone');
+    if (phoneInput) {
+      IMask(phoneInput, { mask: '+7(000)000-00-00', lazy: false, placeholderChar: '_' });
+      phoneInput.value = phone || '+7(___)___-__-__';
+    }
+    document.getElementById('fillDate').value = formatDate(new Date());
+    document.querySelectorAll('.error-message').forEach(el => el.style.display = 'none');
+    document.querySelectorAll('.error').forEach(el => el.classList.remove('error'));
+    document.getElementById('interviewFormSuccess').style.display = 'none';
+    toggleInterviewFields();
+  }
+
+  // Валидация форм (кандидат / интервью)
+  function validateForm(isInterview) {
+    let isValid = true;
+
+    const candFields = [
+      { id: 'fullName',        errorId: 'fullNameError',        regex: /^[a-zA-Zа-яА-Я\s\-']{2,100}$/, message: 'ФИО: 2-100 символов, буквы, дефис, пробел' },
+      { id: 'phone',           errorId: 'phoneError',           regex: /^\+7\(\d{3}\)\d{3}-\d{2}-\d{2}$/, message: 'Номер в формате +7(XXX)XXX-XX-XX' },
+      { id: 'position',        errorId: 'positionError',        regex: /.+/,                             message: 'Укажите должность' },
+      { id: 'age',             errorId: 'ageError',             regex: /^(1[6-9]|[2-9][0-9]|100)$/,      message: 'Возраст: 16-100 лет' },
+      { id: 'citizenship',     errorId: 'citizenshipError',     regex: /.+/,                             message: 'Укажите гражданство' },
+      { id: 'status',          errorId: 'statusError',          regex: /.+/,                             message: 'Выберите статус' },
+      { id: 'source',          errorId: 'sourceError',          regex: /.+/,                             message: 'Укажите источник' },
+      { id: 'recruiter',       errorId: 'recruiterError',       regex: /.+/,                             message: 'Укажите рекрутера' },
+      { id: 'comment',         errorId: 'commentError',         regex: /^.{0,200}$/,                     message: 'Комментарий ≤ 200 символов' },
+      { id: 'refusalComment',  errorId: 'refusalCommentError',  regex: /^.{0,200}$/, required: false,   message: 'Комментарий отказа ≤ 200 символов' }
+    ];
+
+    const intrFields = [
+      { id: 'interviewFullName', errorId: 'interviewFullNameError', regex: /^[a-zA-Zа-яА-Я\s\-']{2,100}$/, message: 'ФИО: 2-100 символов' },
+      { id: 'interviewPhone',    errorId: 'interviewPhoneError',    regex: /^\+7\(\d{3}\)\d{3}-\d{2}-\d{2}$/, message: 'Номер в формате +7(XXX)XXX-XX-XX' },
+      { id: 'interviewPosition', errorId: 'interviewPositionError', regex: /.+/,                              message: 'Укажите должность' },
+      { id: 'interviewAge',      errorId: 'interviewAgeError',      regex: /^(1[6-9]|[2-9][0-9]|100)$/,      message: 'Возраст: 16-100 лет' },
+      { id: 'interviewCitizenship', errorId: 'interviewCitizenshipError', regex: /.+/,                         message: 'Укажите гражданство' },
+      { id: 'interviewSource',   errorId: 'interviewSourceError',   regex: /.+/,                              message: 'Укажите источник' },
+      { id: 'interviewRecruiter',errorId: 'interviewRecruiterError',regex: /.+/,                              message: 'Укажите рекрутера' },
+      { id: 'recommendation',    errorId: 'recommendationError',    regex: /^.{0,200}$/,                     message: 'Рекомендация ≤ 200 символов' },
+      { id: 'interviewComment',  errorId: 'interviewCommentError',  regex: /^.{0,200}$/,                     message: 'Комментарий ≤ 200 символов' }
+    ];
+
+    const fields = isInterview ? intrFields : candFields;
+
+    fields.forEach(f => {
+      const el = document.getElementById(f.id);
+      const val = el ? el.value.trim() : '';
+      const errEl = document.getElementById(f.errorId);
+      if (!el) { isValid = false; return; }
+      if ((f.required !== false && !val) || (f.regex && !f.regex.test(val) && (f.required !== false || val))) {
+        errEl.textContent = f.message;
+        errEl.style.display = 'block';
+        el.classList.add('error');
+        isValid = false;
+      } else {
+        errEl.style.display = 'none';
+        el.classList.remove('error');
+      }
+    });
+
+    const status = isInterview
+      ? document.getElementById('interviewStatus')?.value
+      : document.getElementById('status')?.value;
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    const now   = new Date();
+
+    // Проверка дат/времени для соответствующих статусов
+    function checkDate(dateEl, timeEl, dateErrEl, timeErrEl) {
+      const dStr = dateEl.value, tStr = timeEl.value;
+      if (!dStr || !tStr) { isValid = false; return; }
+      const d = new Date(dStr); d.setHours(0,0,0,0);
+      const [hh, mm] = tStr.split(':').map(Number);
+      const dt = new Date(dStr); dt.setHours(hh, mm);
+      if (d < today) {
+        dateErrEl.textContent = 'Дата не может быть раньше текущей';
+        dateErrEl.style.display = 'block';
+        dateEl.classList.add('error');
+        isValid = false;
+      } else if (d.getTime() === today.getTime() && dt <= now) {
+        timeErrEl.textContent = 'Время не может быть раньше текущего';
+        timeErrEl.style.display = 'block';
+        timeEl.classList.add('error');
+        isValid = false;
+      }
+    }
+
+    if (!isInterview && status === 'Назначено собеседование') {
+      checkDate(
+        document.getElementById('interviewDate'),
+        document.getElementById('interviewTime'),
+        document.getElementById('interviewDateError'),
+        document.getElementById('interviewTimeError')
+      );
+    }
+    if (!isInterview && status === 'Связаться позже') {
+      checkDate(
+        document.getElementById('followupDate'),
+        document.getElementById('followupTime'),
+        document.getElementById('followupDateError'),
+        document.getElementById('followupTimeError')
+      );
+    }
+    if (isInterview && status === 'Связаться позже') {
+      checkDate(
+        document.getElementById('interviewStatusDate'),
+        document.getElementById('interviewStatusTime'),
+        document.getElementById('interviewStatusDateError'),
+        document.getElementById('interviewStatusTimeError')
+      );
+    }
+
+    return isValid;
+  }
+
+  // Сохранение формы кандидата
+  function saveForm() {
+    if (!validateForm(false)) {
+      document.getElementById('formError').textContent = 'Пожалуйста, исправьте ошибки в форме';
+      document.getElementById('formError').style.display = 'block';
+      return;
+    }
+    const formData = {
+      fullName:       document.getElementById('fullName').value.trim(),
+      phone:          document.getElementById('phone').value.trim(),
+      position:       document.getElementById('position').value.trim(),
+      age:            parseInt(document.getElementById('age').value),
+      citizenship:    document.getElementById('citizenship').value.trim(),
+      status:         document.getElementById('status').value,
+      interviewDate:  document.getElementById('interviewDate').value,
+      interviewTime:  document.getElementById('interviewTime').value,
+      followupDate:   document.getElementById('followupDate').value,
+      followupTime:   document.getElementById('followupTime').value,
+      source:         document.getElementById('source').value.trim(),
+      recruiter:      document.getElementById('recruiter').value.trim(),
+      callType:       document.querySelector('input[name="callType"]:checked').value,
+      comment:        document.getElementById('comment').value.trim(),
+      refusalComment: document.getElementById('refusalComment').value.trim()
+    };
+    document.getElementById('loadingOverlay').classList.add('show');
+    google.script.run
+      .withSuccessHandler(function(response) {
+        document.getElementById('loadingOverlay').classList.remove('show');
+        if (response.status === 'success') {
+          document.getElementById('formSuccess').style.display = 'block';
+          document.getElementById('formError').style.display   = 'none';
+          clearForm();
+          closeAddCandidateForm();
+        } else {
+          document.getElementById('formError').textContent = response.message;
+          document.getElementById('formError').style.display = 'block';
+          document.getElementById('formSuccess').style.display = 'none';
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loadingOverlay').classList.remove('show');
+        document.getElementById('formError').textContent = 'Ошибка сохранения: ' + error;
+        document.getElementById('formError').style.display = 'block';
+        document.getElementById('formSuccess').style.display = 'none';
+      })
+      .saveCandidate(formData);
+  }
+
+  // Закрыть форму добавления кандидата
+  function closeAddCandidateForm() {
+    document.getElementById('addCandidateForm').classList.remove('show');
+    document.getElementById('interviewsContainer').classList.add('show');
+    document.getElementById('interviewForm').classList.remove('show');
+    document.getElementById('internshipsContainer').classList.remove('show');
+    loadInterviews();
+  }
+
+  // Сохранение формы интервью
+  function saveInterviewForm() {
+    if (!validateForm(true)) {
+      document.getElementById('interviewFormError').textContent = 'Пожалуйста, исправьте ошибки в форме';
+      document.getElementById('interviewFormError').style.display = 'block';
+      return;
+    }
+    const formData = {
+      id:              document.getElementById('interviewForm').dataset.row,
+      fullName:        document.getElementById('interviewFullName').value.trim(),
+      phone:           document.getElementById('interviewPhone').value.trim(),
+      position:        document.getElementById('interviewPosition').value.trim(),
+      age:             parseInt(document.getElementById('interviewAge').value),
+      citizenship:     document.getElementById('interviewCitizenship').value.trim(),
+      status:          document.getElementById('interviewStatus').value,
+      statusDate:      document.getElementById('interviewStatusDate').value,
+      statusTime:      document.getElementById('interviewStatusTime').value,
+      source:          document.getElementById('interviewSource').value.trim(),
+      recruiter:       document.getElementById('interviewRecruiter').value.trim(),
+      callType:        document.querySelector('input[name="interviewCallType"]:checked').value,
+      isReferral:      document.querySelector('input[name="isReferral"]:checked').value,
+      referralName:    document.getElementById('referralName').value.trim(),
+      fillDate:        document.getElementById('fillDate').value,
+      hasMedicalBook:  document.querySelector('input[name="hasMedicalBook"]:checked').value,
+      scheduleExplained: document.querySelector('input[name="scheduleExplained"]:checked').value,
+      paymentExplained:  document.querySelector('input[name="paymentExplained"]:checked').value,
+      recommendation:    document.getElementById('recommendation').value.trim(),
+      interviewComment:  document.getElementById('interviewComment').value.trim()
+    };
+    document.getElementById('loadingOverlay').classList.add('show');
+    google.script.run
+      .withSuccessHandler(function(response) {
+        document.getElementById('loadingOverlay').classList.remove('show');
+        if (response.status === 'success') {
+          document.getElementById('interviewFormSuccess').style.display = 'block';
+          document.getElementById('interviewFormError').style.display   = 'none';
+          clearInterviewForm();
+          openInterviews();
+        } else {
+          document.getElementById('interviewFormError').textContent = response.message;
+          document.getElementById('interviewFormError').style.display = 'block';
+          document.getElementById('interviewFormSuccess').style.display = 'none';
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loadingOverlay').classList.remove('show');
+        document.getElementById('interviewFormError').textContent = 'Ошибка сохранения: ' + error;
+        document.getElementById('interviewFormError').style.display = 'block';
+        document.getElementById('interviewFormSuccess').style.display = 'none';
+      })
+      .saveInterview(formData);
+  }
+
+  // Загрузить и отобразить собеседования
+  function loadInterviews() {
+    const dateFilter = document.getElementById('interviewFilterAll').checked
+      ? ''
+      : document.getElementById('interviewDateFilter').value;
+    document.getElementById('loadingOverlay').classList.add('show');
+    google.script.run
+      .withSuccessHandler(function(response) {
+        document.getElementById('loadingOverlay').classList.remove('show');
+        if (response.status === 'success') {
+          const tableBody = document.getElementById('interviewsTableBody');
+          tableBody.innerHTML = '';
+          response.interviews.forEach(interview => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${interview.dateTime}</td>
+              <td>${interview.fullName}</td>
+              <td>${interview.phone}</td>
+              <td>${interview.position}</td>
+              <td>${interview.comment}</td>
+              <td>
+                <div class="status-container">
+                  <select class="status-select" data-id="${interview.id}">
+                    <option value="Назначено собеседование"${interview.status==='Назначено собеседование'?' selected':''}>Назначено собеседование</option>
+                    <option value="Связаться позже"${interview.status==='Связаться позже'?' selected':''}>Связаться позже</option>
+                    <option value="Кандидат отказался"${interview.status==='Кандидат отказался'?' selected':''}>Кандидат отказался</option>
+                    <option value="Отказано кандидату"${interview.status==='Отказано кандидату'?' selected':''}>Отказано кандидату</option>
+                  </select>
+                  <div class="followup-container" style="display:${interview.status==='Связаться позже'?'flex':'none'};">
+                    <input type="date" class="followup-date" value="${interview.followupDate}">
+                    <input type="time" class="followup-time" value="${interview.followupTime}">
+                  </div>
+                  <div class="comment-container" style="display:${['Кандидат отказался','Отказано кандидату'].includes(interview.status)?'block':'none'};">
+                    <textarea class="internship-comment" maxlength="200">${interview.refusalComment}</textarea>
+                  </div>
+                </div>
+              </td>
+              <td><button class="action-btn" onclick="openInterviewForm('${interview.id}')">Анкета</button></td>
+            `;
+            tableBody.appendChild(row);
+          });
+          document.querySelectorAll('.status-select').forEach(select => {
+            select.addEventListener('change', function() {
+              const container = this.closest('.status-container');
+              container.querySelector('.followup-container').style.display = this.value==='Связаться позже'?'flex':'none';
+              container.querySelector('.comment-container').style.display = ['Кандидат отказался','Отказано кандидату'].includes(this.value)?'block':'none';
+            });
+          });
+        } else {
+          document.getElementById('formError').textContent = response.message;
+          document.getElementById('formError').style.display = 'block';
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loadingOverlay').classList.remove('show');
+        document.getElementById('formError').textContent = 'Ошибка загрузки: ' + error;
+        document.getElementById('formError').style.display = 'block';
+      })
+      .getInterviewsByDate(dateFilter);
+  }
+
+  // Сохранить изменения статусов собеседований
+  function saveInterviewChanges() {
+    const updates = [];
+    document.querySelectorAll('.status-select').forEach(select => {
+      const id = select.dataset.id;
+      const status = select.value;
+      const container = select.closest('.status-container');
+      const followupDate = container.querySelector('.followup-date').value || '';
+      const followupTime = container.querySelector('.followup-time').value || '';
+      const refusalComment = container.querySelector('.internship-comment').value || '';
+      updates.push({ id, status, followupDate, followupTime, refusalComment, recruiter: document.getElementById('interviewRecruiter').value.trim() });
+    });
+    document.getElementById('loadingOverlay').classList.add('show');
+    google.script.run
+      .withSuccessHandler(function(response) {
+        document.getElementById('loadingOverlay').classList.remove('show');
+        if (response.status === 'success') {
+          loadInterviews();
+        } else {
+          document.getElementById('formError').textContent = response.message;
+          document.getElementById('formError').style.display = 'block';
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loadingOverlay').classList.remove('show');
+        document.getElementById('formError').textContent = 'Ошибка сохранения: ' + error;
+        document.getElementById('formError').style.display = 'block';
+      })
+      .updateInterviewStatuses(updates);
+  }
+
+  // Загрузить и отобразить стажировки
+  function loadInternships() {
+    const dateFilter = document.getElementElementById('internshipFilterAll').checked
+      ? ''
+      : document.getElementById('internshipDateFilter').value;
+    document.getElementById('loadingOverlay').classList.add('show');
+    google.script.run
+      .withSuccessHandler(function(response) {
+        document.getElementById('loadingOverlay').classList.remove('show');
+        if (response.status === 'success') {
+          const tableBody = document.getElementById('internshipsTableBody');
+          tableBody.innerHTML = '';
+          response.interviews.forEach(internship => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+              <td>${internship.dateTime}</td>
+              <td>${internship.fullName}</td>
+              <td>${internship.phone}</td>
+              <td>${internship.position}</td>
+              <td>${internship.comment}</td>
+              <td>
+                <div class="status-container">
+                  <select class="status-select" data-id="${internship.id}">
+                    <option value="Связаться позже"${internship.status==='Связаться позже'?' selected':''}>Связаться позже</option>
+                    <option value="Кандидат отказался"${internship.status==='Кандидат отказался'?' selected':''}>Кандидат отказался</option>
+                    <option value="Отказано кандидату"${internship.status==='Отказано кандидату'?' selected':''}>Отказано кандидату</option>
+                  </select>
+                  <div class="followup-container" style="display:${internship.status==='Связаться позже'?'flex':'none'};">
+                    <input type="date" class="followup-date" value="${internship.followupDate}">
+                    <input type="time" class="followup-time" value="${internship.followupTime}">
+                  </div>
+                  <div class="comment-container" style="display:${['Кандидат отказался','Отказано кандидату'].includes(internship.status)?'block':'none'};">
+                    <textarea class="internship-comment" maxlength="200">${internship.refusalComment}</textarea>
+                  </div>
+                </div>
+              </td>
+            `;
+            tableBody.appendChild(row);
+          });
+          document.querySelectorAll('.status-select').forEach(select => {
+            select.addEventListener('change', function() {
+              const container = this.closest('.status-container');
+              container.querySelector('.followup-container').style.display = this.value==='Связаться позже'?'flex':'none';
+              container.querySelector('.comment-container').style.display = ['Кандидат отказался','Отказано кандидату'].includes(this.value)?'block':'none';
+            });
+          });
+        } else {
+          document.getElementById('formError').textContent = response.message;
+          document.getElementById('formError').style.display = 'block';
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loadingOverlay').classList.remove('show');
+        document.getElementById('formError').textContent = 'Ошибка загрузки: ' + error;
+        document.getElementById('formError').style.display = 'block';
+      })
+      .getInternshipsByDate(dateFilter);
+  }
+
+  // Сохранение изменений статусов стажировок
+  function saveInternshipChanges() {
+    const updates = [];
+    document.querySelectorAll('.status-select').forEach(select => {
+      const container = select.closest('.status-container');
+      const id              = select.dataset.id;
+      const status          = select.value;
+      const followupDate    = container.querySelector('.followup-date').value || '';
+      const followupTime    = container.querySelector('.followup-time').value || '';
+      const refusalComment  = container.querySelector('.internship-comment').value || '';
+      updates.push({ id, status, followupDate, followupTime, refusalComment, recruiter: document.getElementById('interviewRecruiter').value.trim() });
+    });
+    document.getElementById('loadingOverlay').classList.add('show');
+    google.script.run
+      .withSuccessHandler(function(response) {
+        document.getElementById('loadingOverlay').classList.remove('show');
+        if (response.status === 'success') {
+          loadInternships();
+        } else {
+          document.getElementById('formError').textContent = response.message;
+          document.getElementById('formError').style.display = 'block';
+        }
+      })
+      .withFailureHandler(function(error) {
+        document.getElementById('loadingOverlay').classList.remove('show');
+        document.getElementById('formError').textContent = 'Ошибка сохранения: ' + error;
+        document.getElementById('formError').style.display = 'block';
+      })
+      .updateInternshipStatuses(updates);
+  }
+
+  // Инициализация после загрузки документа
+  document.addEventListener('DOMContentLoaded', function() {
+    loadLists();
+    toggleFields();
+    toggleInterviewFields();
+
+    document.getElementById('status')?.addEventListener('change', toggleFields);
+    document.getElementById('interviewStatus')?.addEventListener('change', toggleInterviewFields);
+    document.querySelectorAll('input[name="isReferral"]').forEach(r => r.addEventListener('change', toggleReferralField));
+    document.getElementById('interviewFilterAll')?.addEventListener('change', toggleDateFilter);
+    document.getElementById('interviewFilterDate')?.addEventListener('change', toggleDateFilter);
+    document.getElementById('interviewDateFilter')?.addEventListener('change', loadInterviews);
+    toggleDateFilter();
+    document.getElementById('internshipFilterAll')?.addEventListener('change', toggleInternshipDateFilter);
+    document.getElementById('internshipFilterDate')?.addEventListener('change', toggleInternshipDateFilter);
+  });
+</script>
