@@ -50,7 +50,7 @@
           const data = response.data;
           document.getElementById('interviewFullName').value = data[3];
           const phoneInput = document.getElementById('interviewPhone');
-          phoneInput.value = data[4];
+          phoneInput.value = String(data[4]).replace(/^'/,'');
           IMask(phoneInput, { mask: '+7(000)000-00-00', lazy: false, placeholderChar: '_' }).updateValue();
           document.getElementById('interviewPosition').value = data[5];
           document.getElementById('interviewAge').value = data[6];
@@ -119,6 +119,32 @@
         document.getElementById('loadingOverlay').classList.remove('show');
         if(res.status==='success'){
           const d = res.data;
+          document.getElementById('internshipFullName').value = d[3];
+          const ph = document.getElementById('internshipPhone');
+          ph.value = String(d[4]).replace(/^'/,'');
+          IMask(ph,{mask:'+7(000)000-00-00',lazy:false,placeholderChar:'_'}).updateValue();
+          document.getElementById('internshipPosition').value = d[5];
+          document.getElementById('internshipAge').value = d[6];
+          document.getElementById('internshipCitizenship').value = d[7];
+          document.getElementById('internshipStatus').value = d[8];
+          if(d[8]==='Связаться позже'){
+            document.getElementById('internshipStatusDate').value = d[11]?d[11].split('.').reverse().join('-'):'';
+            document.getElementById('internshipStatusTime').value = d[12]||'';
+          } else {
+            document.getElementById('internshipStatusDate').value = '';
+            document.getElementById('internshipStatusTime').value = '';
+          }
+          document.getElementById('internshipSource').value = d[13];
+          document.getElementById('internshipRecruiter').value = d[14];
+          document.querySelector(`input[name="internshipCallType"][value="${d[15]}"]`).checked = true;
+          document.querySelector(`input[name="internshipIsReferral"][value="${d[18]}"]`).checked = true;
+          document.getElementById('internshipReferralName').value = d[19];
+          document.getElementById('hasMedicalBook').checked = d[21]==='Да';
+          document.getElementById('scheduleExplained').checked = d[22]==='Да';
+          document.getElementById('paymentExplained').checked = d[23]==='Да';
+          document.getElementById('internshipComment').value = d[16];
+          document.getElementById('internshipRecommendation').value = d[24];
+          document.getElementById('internshipInterviewComment').value = d[25];
           document.getElementById('medicalBookSubmitted').checked = d[28]==='Да';
           document.getElementById('apprenticeshipContract').checked = d[29]==='Да';
           document.getElementById('dataProcessingConsent').checked = d[30]==='Да';
@@ -127,6 +153,8 @@
           document.getElementById('medicalExamExpiration').value = d[33] ? d[33].split('.').reverse().join('-') : '';
           document.getElementById('sanitaryExpiration').value = d[34] ? d[34].split('.').reverse().join('-') : '';
           toggleMedicalFields();
+          toggleInternshipStatusFields();
+          toggleInternshipReferral();
         }
     }).withFailureHandler(function(err){
         document.getElementById('loadingOverlay').classList.remove('show');
@@ -152,9 +180,39 @@
     document.querySelector('.medical-fields').style.display = show ? 'flex' : 'none';
   }
 
+  function toggleInternshipStatusFields(){
+    const st = document.getElementById('internshipStatus')?.value;
+    document.querySelector('.internship-status-fields').style.display = st === 'Связаться позже' ? 'flex' : 'none';
+  }
+
+  function toggleInternshipReferral(){
+    const show = document.querySelector('input[name="internshipIsReferral"]:checked')?.value === 'Да';
+    document.querySelector('.internship-referral').style.display = show ? 'block' : 'none';
+  }
+
+
   function saveInternshipForm(){
     const data = {
       id: document.getElementById('internshipForm').dataset.row,
+      fullName: document.getElementById('internshipFullName').value.trim(),
+      phone: document.getElementById('internshipPhone').value.trim(),
+      position: document.getElementById('internshipPosition').value.trim(),
+      age: parseInt(document.getElementById('internshipAge').value),
+      citizenship: document.getElementById('internshipCitizenship').value.trim(),
+      status: document.getElementById('internshipStatus').value,
+      statusDate: document.getElementById('internshipStatusDate').value,
+      statusTime: document.getElementById('internshipStatusTime').value,
+      source: document.getElementById('internshipSource').value.trim(),
+      recruiter: document.getElementById('internshipRecruiter').value.trim(),
+      callType: document.querySelector('input[name="internshipCallType"]:checked').value,
+      isReferral: document.querySelector('input[name="internshipIsReferral"]:checked').value,
+      referralName: document.getElementById('internshipReferralName').value.trim(),
+      hasMedicalBook: document.getElementById('hasMedicalBook').checked ? 'Да':'Нет',
+      scheduleExplained: document.getElementById('scheduleExplained').checked ? 'Да':'Нет',
+      paymentExplained: document.getElementById('paymentExplained').checked ? 'Да':'Нет',
+      comment: document.getElementById('internshipComment').value.trim(),
+      recommendation: document.getElementById('internshipRecommendation').value.trim(),
+      interviewComment: document.getElementById('internshipInterviewComment').value.trim(),
       medicalBookSubmitted: document.getElementById('medicalBookSubmitted').checked ? 'Да':'Нет',
       apprenticeshipContract: document.getElementById('apprenticeshipContract').checked ? 'Да':'Нет',
       dataProcessingConsent: document.getElementById('dataProcessingConsent').checked ? 'Да':'Нет',
@@ -621,7 +679,7 @@
           response.interviews.forEach(internship => {
             const row = document.createElement('tr');
             row.innerHTML = `
-              <td><input type="date" class="internship-date" value="${internship.interviewDate}"><input type="time" class="internship-time" value="${internship.interviewTime}"></td>
+              <td class="internship-datetime" data-date="${internship.interviewDate}" data-time="${internship.interviewTime}">${internship.dateTime}</td>
               <td>${internship.fullName}</td>
               <td>${internship.phone}</td>
               <td>${internship.position}</td>
@@ -632,6 +690,7 @@
                     <option value="Связаться позже"${internship.status==='Связаться позже'?' selected':''}>Связаться позже</option>
                     <option value="Кандидат отказался"${internship.status==='Кандидат отказался'?' selected':''}>Кандидат отказался</option>
                     <option value="Отказано кандидату"${internship.status==='Отказано кандидату'?' selected':''}>Отказано кандидату</option>
+                    <option value="Принят на работу"${internship.status==='Принят на работу'?' selected':''}>Принят на работу</option>
                   </select>
                   <div class="followup-container" style="display:${internship.status==='Связаться позже'?'flex':'none'};">
                     <input type="date" class="followup-date" value="${internship.followupDate}">
@@ -677,8 +736,9 @@
       const followupDate    = statusCont.querySelector('.followup-date').value || '';
       const followupTime    = statusCont.querySelector('.followup-time').value || '';
       const refusalComment  = statusCont.querySelector('.internship-comment').value || '';
-      const interviewDate   = container.querySelector('.internship-date').value || '';
-      const interviewTime   = container.querySelector('.internship-time').value || '';
+      const dtCell          = container.querySelector('.internship-datetime');
+      const interviewDate   = dtCell ? dtCell.dataset.date : '';
+      const interviewTime   = dtCell ? dtCell.dataset.time : '';
       updates.push({ id, status, followupDate, followupTime, refusalComment, interviewDate, interviewTime, recruiter: document.getElementById('interviewRecruiter').value.trim() });
     });
     document.getElementById('loadingOverlay').classList.add('show');
@@ -706,6 +766,8 @@
     toggleFields();
     toggleInterviewFields();
     toggleMedicalFields();
+    toggleInternshipStatusFields();
+    toggleInternshipReferral();
 
     document.getElementById('status')?.addEventListener('change', toggleFields);
     document.getElementById('interviewStatus')?.addEventListener('change', toggleInterviewFields);
@@ -717,5 +779,7 @@
     document.getElementById('internshipFilterAll')?.addEventListener('change', toggleInternshipDateFilter);
     document.getElementById('internshipFilterDate')?.addEventListener('change', toggleInternshipDateFilter);
     document.getElementById('medicalBookSubmitted')?.addEventListener('change', toggleMedicalFields);
+    document.getElementById('internshipStatus')?.addEventListener('change', toggleInternshipStatusFields);
+    document.querySelectorAll('input[name="internshipIsReferral"]').forEach(r => r.addEventListener('change', toggleInternshipReferral));
   });
 </script>
